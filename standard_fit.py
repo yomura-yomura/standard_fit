@@ -1,5 +1,6 @@
 import numpy as np
 
+
 fit_list = [
     "gaussian", "power law", "exp", "log",
     "exp10",
