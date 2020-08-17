@@ -97,7 +97,7 @@ def gaussian_fit_and_show(x, **kwargs):
 
     # import plotly
     # plotly.offline.plot(fig, config=dict(editable=True))
-    fig.show()
+    fig.show(config=dict(editable=True))
 
 
 def fit_and_fig(x, y, fit_type, px_kwargs={}, *args, **kwargs):
@@ -111,7 +111,8 @@ def fit_and_show(x, y, fit_type, px_kwargs={}, *args, **kwargs):
     from . import _plotly_express as _px
     result = fit(x, y, fit_type, *args, **kwargs)
     fig = _px.scatter(x, y, result, **px_kwargs)
-    fig.show()
+    fig.show(config=dict(editable=True))
+    
 
 
 
