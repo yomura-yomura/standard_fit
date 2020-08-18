@@ -70,9 +70,10 @@ def fit(x, y, fit_type, y_err=None, initial_guess=None, bounds=None, x_range=(),
     ndf = len(x) - len(params)
 
     if print_result:
-        print(f"{fit_type} fit results:")
-        for name, param in zip(functions.get_parameter_names(fit_type), params):
-            print(f"\t{name} = {param}")
+        print(result)
+#        print(f"{fit_type} fit results:")
+#        for name, param in zip(functions.get_parameter_names(fit_type), params):
+#            print(f"\t{name} = {param}")
 
     return fit_type, params, cov_params, chi_squared, ndf, x_range
 

@@ -88,12 +88,12 @@ def estimate_initial_guess(fit_type, x, y):
         a = np.max(y)
         # mean = np.average(x, weights=y)
         mean = x[np.argmax(y)]
-        rms = np.average((x - mean) ** 2, weights=y)
+        rms = np.sqrt(np.average((x - mean) ** 2, weights=y))
         initial_guess = (a, mean, rms)
-        # bounds = (
-        #     [0, -np.inf, 0],
-        #     np.inf
-        # )
+        bounds = (
+            [0, -np.inf, 0],
+            np.inf
+        )
     elif fit_type == "power law":
         min_i = np.argmin(x)
         max_i = np.argmax(x)
@@ -139,4 +139,6 @@ def estimate_initial_guess(fit_type, x, y):
         initial_guess = (A, m, s)
     else:
         raise NotImplementedError
+
+    # print(initial_guess)
     return initial_guess
