@@ -19,6 +19,7 @@ def scatter(x, y, result=None, fit_stats=True, **kwargs):
 def histogram(x, result=None, fit_stats=True, **kwargs):
     fig = plotly_histogram(x, **kwargs)
     if result is not None:
+        fig._fit_result = result
         fig.add_trace(_plotly.get_fit_trace(result))
         if fit_stats:
             _plotly.add_annotation(fig, result)

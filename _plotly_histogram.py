@@ -88,6 +88,8 @@ def _histogram(x, bins, density, opacity, name=None, color=None):
 def histogram(x, marginal=None, color=None, barmode="stack",
               bins="auto", density=False,
               fit=None, **kwargs):
+    assert(len(x) != 0)
+
     import plotly.express as px
 
     if barmode == "overlay":

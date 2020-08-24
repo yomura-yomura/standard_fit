@@ -54,8 +54,6 @@ def fit(x, y, fit_type, y_err=None, initial_guess=None, bounds=None, x_range=(),
 
     fit_func = functions.get_func(fit_type)
 
-    # import scipy.optimize
-    # params, cov_params = scipy.optimize.curve_fit(fit_func, x, y, sigma=y_err, p0=initial_guess, bounds=bounds)
     import iminuit
     result = iminuit.minimize(
         lambda p: np.sum(((fit_func(x, *p) - y)/y_err)**2),
@@ -79,6 +77,7 @@ def fit(x, y, fit_type, y_err=None, initial_guess=None, bounds=None, x_range=(),
 
 
 def gaussian_fit(x, **kwargs):
+    x = x[~np.isnan(x)]
     counts, bins = np.histogram(x, bins="auto")
     x = (bins[1:] + bins[:-1]) * 0.5
     y = counts
@@ -86,18 +85,21 @@ def gaussian_fit(x, **kwargs):
     return fit(x, y, "gaussian", **kwargs)
 
 
-def gaussian_fit_and_show(x, **kwargs):
+def gaussian_fit_and_fig(x, px_kwargs={}, **kwargs):
+    x = x[~np.isnan(x)]
     counts, bins = np.histogram(x, bins="auto")
     result = fit((bins[1:] + bins[:-1]) * 0.5, counts, "gaussian", **kwargs)
 
     from . import _plotly_express as _px
     from . import _plotly
-    fig = _px.histogram(x, bins=bins)
-    fig.add_trace(_plotly.get_fit_trace(result))
+    fig = _px.histogram(x, result, bins=bins, **px_kwargs)
+    # fig.add_trace(_plotly.get_fit_trace(result))
     _plotly.add_annotation(fig, result)
+    return fig
 
-    # import plotly
-    # plotly.offline.plot(fig, config=dict(editable=True))
+
+def gaussian_fit_and_show(x, **kwargs):
+    fig = gaussian_fit_and_fig(x, **kwargs)
     fig.show(config=dict(editable=True))
 
 

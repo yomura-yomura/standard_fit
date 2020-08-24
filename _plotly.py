@@ -3,7 +3,7 @@ import plotly.graph_objs as go
 from . import functions
 
 
-def get_fit_trace(result, n_points=100, log_x=False, **kwargs):
+def get_fit_trace(result, n_points=1000, log_x=False, **kwargs):
     fit_type, params, _, _, _, x_range = result
     if log_x:
         fit_x = np.logspace(*np.log10(x_range), n_points)
@@ -12,7 +12,10 @@ def get_fit_trace(result, n_points=100, log_x=False, **kwargs):
     fit_y = [functions.get_func(fit_type)(x, *result[1]) for x in fit_x]
 
     plot_kwargs = dict(
-        name=f"{fit_type} fit"
+        name=f"{fit_type} fit",
+        line=dict(
+            color="red"
+        )
     )
     plot_kwargs.update(kwargs)
 
@@ -51,9 +54,9 @@ def add_annotation(fig, fit_results):
     fig.add_annotation(
         # x=x0,
         # y=y0,
-        x=1,
-        # y=0.83,
-        y=1,
+        x=fig.layout.xaxis.domain[1],
+        y=fig.layout.yaxis.domain[1],
+        # y=1,
         xref="paper",
         yref="paper",
         font=dict(
