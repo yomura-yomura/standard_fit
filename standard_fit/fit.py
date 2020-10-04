@@ -85,13 +85,15 @@ def gaussian_fit(x, **kwargs):
     return fit(x, y, "gaussian", **kwargs)
 
 
+from . import plotly_express as _px
+from . import plotly as _plotly
+
+
 def gaussian_fit_and_fig(x, px_kwargs={}, **kwargs):
     x = x[~np.isnan(x)]
     counts, bins = np.histogram(x, bins="auto")
     result = fit((bins[1:] + bins[:-1]) * 0.5, counts, "gaussian", **kwargs)
 
-    from . import _plotly_express as _px
-    from . import _plotly
     fig = _px.histogram(x, result, bins=bins, **px_kwargs)
     # fig.add_trace(_plotly.get_fit_trace(result))
     _plotly.add_annotation(fig, result)
@@ -104,14 +106,12 @@ def gaussian_fit_and_show(x, **kwargs):
 
 
 def fit_and_fig(x, y, fit_type, px_kwargs={}, *args, **kwargs):
-    from . import _plotly_express as _px
     result = fit(x, y, fit_type, *args, **kwargs)
     fig = _px.scatter(x, y, result, **px_kwargs)
     return fig
 
 
 def fit_and_show(x, y, fit_type, px_kwargs={}, *args, **kwargs):
-    from . import _plotly_express as _px
     result = fit(x, y, fit_type, *args, **kwargs)
     fig = _px.scatter(x, y, result, **px_kwargs)
     fig.show(config=dict(editable=True))

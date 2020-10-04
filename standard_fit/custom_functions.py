@@ -1,5 +1,7 @@
 import numpy as np
 from . import standard_functions as sf
+import inspect
+
 
 fit_list = ["spectrum", "spectrum_linear", "broken_pol1"]
 
@@ -48,7 +50,6 @@ def get_func(fit_type):
 
 def get_parameter_names(fit_type):
     fit_func = get_func(fit_type)
-    import inspect
     return list(inspect.signature(fit_func).parameters)[1:]
 
 

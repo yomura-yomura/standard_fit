@@ -1,4 +1,6 @@
 import numpy as np
+import inspect
+import warnings
 
 
 fit_list = [
@@ -79,21 +81,7 @@ def get_func(fit_type):
 
 def get_parameter_names(fit_type):
     fit_func = get_func(fit_type)
-    import inspect
     return list(inspect.signature(fit_func).parameters)[1:]
-
-
-# def get_default_bounds(fit_type):
-#     if fit_type == "gaussian":
-#         bounds = [
-#             None,
-#             None,
-#             (0, None)
-#         ]
-#     else:
-#         bounds = None
-#     return bounds
-import warnings
 
 
 def estimate_initial_guess(fit_type, x, y):
