@@ -2,21 +2,6 @@ import numpy as np
 from . import standard_functions
 
 
-# def integral_power_law(x, A, s):
-#     return A / (s + 1) * np.power(x, s + 1)
-#
-#
-# def get_normalized_function(fit_type, min_x, max_x):
-#     if fit_type == "power_law":
-#         func = functions.get_func(fit_type)
-#
-#         def norm_func(x, A, s):
-#             return func(x, A, s) / (integral_power_law(max_x, A, s) - integral_power_law(min_x, A, s))
-#     else:
-#         raise NotImplementedError
-#
-#     return norm_func
-
 def integrate(func, params, min_x, max_x):
     import scipy.integrate
     return scipy.integrate.quad(lambda x: func(x, *params), min_x, max_x)
@@ -67,10 +52,3 @@ def fit(x, fit_type, x_range=()):
     ndf = len(x) - len(params)
     return fit_type, params, cov_params, chi_squared, ndf, x_range
 
-
-def fit_and_show(x, fit_type, *args, **kwargs):
-    from standard_fit.plotly.express import _plotly_express as _px
-    result = fit(x, fit_type, *args, **kwargs)
-
-    fig = _px.histogram(x, result, density=True, title="Unbinned maximum likelihood fit")
-    fig.show()

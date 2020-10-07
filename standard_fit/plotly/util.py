@@ -1,6 +1,7 @@
 import numpy as np
 import plotly.graph_objs as go
 from standard_fit import functions
+from uncertainties import ufloat
 
 
 __all__ = ["get_fit_trace", "add_annotation"]
@@ -39,7 +40,6 @@ def add_annotation(fig, fit_results):
         if align == "right":
             return [f"{s:>{max_len}}" for s in a]
 
-    from uncertainties import ufloat
     if fit_type == "kde":
         str_params = [f"{ufloat(p, ep):.4g}".replace("+/-", " ± ") for p, ep in zip(params[1:], err_params[1:])]
         text_lines = [
