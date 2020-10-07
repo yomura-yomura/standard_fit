@@ -69,7 +69,7 @@ def fit(x, fit_type, x_range=()):
 
 
 def fit_and_show(x, fit_type, *args, **kwargs):
-    from . import _plotly_express as _px
+    from standard_fit.plotly.express import _plotly_express as _px
     result = fit(x, fit_type, *args, **kwargs)
 
     fig = _px.histogram(x, result, density=True, title="Unbinned maximum likelihood fit")

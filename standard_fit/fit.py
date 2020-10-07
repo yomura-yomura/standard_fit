@@ -4,7 +4,7 @@ from . import functions
 
 def fit(x, y, fit_type, y_err=None, initial_guess=None, bounds=None, x_range=(), print_result=True):
     assert len(x) == len(y)
-    if fit_type not in functions.fit_list:
+    if fit_type not in functions.__all__:
         raise ValueError(f"Not available fit type: {fit_type}")
 
     x = np.array(x)
@@ -85,36 +85,29 @@ def gaussian_fit(x, **kwargs):
     return fit(x, y, "gaussian", **kwargs)
 
 
-def gaussian_fit_and_fig(x, px_kwargs={}, **kwargs):
-    x = x[~np.isnan(x)]
-    counts, bins = np.histogram(x, bins="auto")
-    result = fit((bins[1:] + bins[:-1]) * 0.5, counts, "gaussian", **kwargs)
-
-    from . import _plotly_express as _px
-    from . import _plotly
-    fig = _px.histogram(x, result, bins=bins, **px_kwargs)
-    # fig.add_trace(_plotly.get_fit_trace(result))
-    _plotly.add_annotation(fig, result)
-    return fig
-
-
-def gaussian_fit_and_show(x, **kwargs):
-    fig = gaussian_fit_and_fig(x, **kwargs)
-    fig.show(config=dict(editable=True))
-
-
-def fit_and_fig(x, y, fit_type, px_kwargs={}, *args, **kwargs):
-    from . import _plotly_express as _px
-    result = fit(x, y, fit_type, *args, **kwargs)
-    fig = _px.scatter(x, y, result, **px_kwargs)
-    return fig
-
-
-def fit_and_show(x, y, fit_type, px_kwargs={}, *args, **kwargs):
-    from . import _plotly_express as _px
-    result = fit(x, y, fit_type, *args, **kwargs)
-    fig = _px.scatter(x, y, result, **px_kwargs)
-    fig.show(config=dict(editable=True))
+# def gaussian_fit_and_fig(x, px_kwargs={}, **kwargs):
+#     from standard_fit.plotly.express import _plotly_express as _px
+#     fig = _px.histogram(x=x, fit_type="gaussian", fit_stats=True, **px_kwargs)
+#     return fig
+#
+#
+# def gaussian_fit_and_show(x, **kwargs):
+#     fig = gaussian_fit_and_fig(x, **kwargs)
+#     fig.show(config=dict(editable=True))
+#
+#
+# def fit_and_fig(x, y, fit_type, px_kwargs={}, *args, **kwargs):
+#     from standard_fit.plotly.express import _plotly_express as _px
+#     result = fit(x, y, fit_type, *args, **kwargs)
+#     fig = _px.scatter(x, y, result, **px_kwargs)
+#     return fig
+#
+#
+# def fit_and_show(x, y, fit_type, px_kwargs={}, *args, **kwargs):
+#     from standard_fit.plotly.express import _plotly_express as _px
+#     result = fit(x, y, fit_type, *args, **kwargs)
+#     fig = _px.scatter(x, y, result, **px_kwargs)
+#     fig.show(config=dict(editable=True))
     
 
 

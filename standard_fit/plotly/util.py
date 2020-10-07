@@ -1,6 +1,9 @@
 import numpy as np
 import plotly.graph_objs as go
-from . import functions
+from standard_fit import functions
+
+
+__all__ = ["get_fit_trace", "add_annotation"]
 
 
 def get_fit_trace(result, n_points=1000, log_x=False, **kwargs):
