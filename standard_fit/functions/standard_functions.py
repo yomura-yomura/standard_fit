@@ -1,9 +1,12 @@
 import numpy as np
+import numpy_utility as npu
 import warnings
+import numba
 
 
 __all__ = [
     "gaussian", "power_law", "exp", "log",
+    "sin",
     "exp10",
     "tanh",
     "approx_landau", "kde",
@@ -11,6 +14,7 @@ __all__ = [
 ]
 
 
+@numba.njit
 def gaussian(x, A, μ, σ):
     return A * np.exp(-0.5 * ((x - μ) / σ) ** 2)
 
@@ -25,6 +29,10 @@ def exp(x, p0, p1):
 
 def log(x, p0, p1):
     return p0 * np.log(p1 * x)
+
+
+def sin(x, A, ω, x0):
+    return A * np.sin(ω * (x - x0))
 
 
 def exp10(x, p0, p1):
@@ -83,7 +91,7 @@ def estimate_initial_guess(fit_type, x, y):
         except ZeroDivisionError:
             std = 0
         initial_guess = (a, mean, std)
-    elif fit_type == "power law":
+    elif fit_type == "power_law":
         min_i = np.argmin(x)
         max_i = np.argmax(x)
         s = (np.log(y[max_i]) - np.log(y[min_i])) / (np.log(x[max_i]) - np.log(x[min_i]))
@@ -111,6 +119,22 @@ def estimate_initial_guess(fit_type, x, y):
         p1 = (np.log(x[max_i]) - np.log(x[min_i])) / (y[max_i] - y[min_i])
         p0 = x[min_i] * np.exp(-p1 * y[min_i])
         initial_guess = (p0, p1)
+    elif fit_type == "sin":
+        assert np.unique(x[1:] - x[:-1]).size == 1
+        freq_on_indices = abs(np.fft.fftfreq(y.size)[np.abs(np.fft.fft(y)).argmax()])
+        lambda_on_indices = int(1 / (freq_on_indices))
+        reshaped_y = npu.reshape(y, (-1, lambda_on_indices), drop=True)
+
+        phi_on_indices = (
+            (reshaped_y.argmax(axis=1).mean() - lambda_on_indices / 4) +
+            (reshaped_y.argmin(axis=1).mean() - lambda_on_indices * 3 / 4)
+        ) / 2
+
+        A = (reshaped_y.max(axis=1).mean() - reshaped_y.min(axis=1).mean()) / 2
+
+        scale = x[1] - x[0]
+        initial_guess = (A, 2*np.pi*freq_on_indices / scale, phi_on_indices * scale)
+        print(initial_guess)
     elif fit_type == "exp10":
         min_i = np.argmin(x)
         max_i = np.argmax(x)
@@ -134,3 +158,6 @@ def estimate_initial_guess(fit_type, x, y):
         raise NotImplementedError
 
     return initial_guess
+
+
+

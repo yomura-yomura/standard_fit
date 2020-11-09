@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='standard_fit',
-    version='1.0',
+    version='1.1',
     description='',
     author='yomura',
     author_email='yomura@hoge.jp',
@@ -10,6 +10,9 @@ setup(
     packages=find_packages(),
     install_requires=[
         "iminuit",
-        "plotly_utility @ git+https://github.com/yomura-yomura/plotly_utility"
+        "jax",
+        "jaxlib",
+        "plotly_utility @ git+https://github.com/yomura-yomura/plotly_utility",
+        "numpy_utility @ git+https://github.com/yomura-yomura/numpy_utility"
     ]
 )

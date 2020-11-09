@@ -1,8 +1,9 @@
 from .standard_functions import *
 from .custom_functions import *
+from . import gradient
 import inspect
 
-__all__ = []
+__all__ = ["gradient"]
 __all__ += standard_functions.__all__
 __all__ += custom_functions.__all__
 
