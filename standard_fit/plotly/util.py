@@ -79,6 +79,9 @@ def add_annotation(fig, fit_result, row=1, col=1, i_data=1,
         y0, y1 = subplot.yaxis.domain
     scale = min(x1 - x0, y1 - y0)
 
+    if text_size * scale < 1:
+        scale = 1 / text_size
+
     fig.add_annotation(
         # x=x0,
         # y=y0,

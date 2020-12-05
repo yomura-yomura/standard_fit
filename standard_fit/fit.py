@@ -16,16 +16,16 @@ fit_dtype = dict(
 )
 
 
-def any_along_column(a):
-    assert a.dtype.names is not None
-    assert len(a.dtype.names) > 0
-
-    ndim = a.ndim
-    return np.any(
-        [a[n] if a[n].ndim <= ndim else a[n].any(axis=tuple(np.arange(ndim, a[n].ndim)))
-         for n in a.dtype.names],
-        axis=0
-    )
+# def any_along_column(a):
+#     assert a.dtype.names is not None
+#     assert len(a.dtype.names) > 0
+#
+#     ndim = a.ndim
+#     return np.any(
+#         [a[n] if a[n].ndim <= ndim else a[n].any(axis=tuple(np.arange(ndim, a[n].ndim)))
+#          for n in a.dtype.names],
+#         axis=0
+#     )
 
 
 def to_numpy(obj):
@@ -34,7 +34,7 @@ def to_numpy(obj):
         if obj.mask.dtype.names is None:
             mask = obj.mask
         else:
-            mask = any_along_column(obj.mask)
+            mask = npu.any_along_column(obj.mask)
         obj = obj.data
     else:
         obj = np.array(obj)
