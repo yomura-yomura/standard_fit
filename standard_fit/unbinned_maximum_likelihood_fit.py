@@ -1,5 +1,5 @@
 import numpy as np
-from . import standard_functions
+from . import functions
 
 
 def integrate(func, params, min_x, max_x):
@@ -8,7 +8,7 @@ def integrate(func, params, min_x, max_x):
 
 
 def get_normalized_function(fit_type, min_x, max_x):
-    func = standard_functions.get_func(fit_type)
+    func = functions.get_func(fit_type)
 
     def norm_func(x, *params):
         return func(x, *params) / (integrate(func, params, min_x, max_x)[0])
@@ -38,17 +38,33 @@ def fit(x, fit_type, x_range=()):
     else:
         import warnings
         warnings.warn(f"Unspecified fit_type = {fit_type}")
-        x0 = [1] * len(standard_functions.get_parameter_names(fit_type))
+        x0 = [1] * len(functions.get_parameter_names(fit_type))
         bounds = None
 
     import iminuit
-    result = iminuit.minimize(fcn, x0, bounds=bounds)
-    params, cov_params = result["x"], result["hess_inv"]
+    m = iminuit.Minuit.from_array_func(
+        fcn,
+        # grad=grad_fcn,
+        start=x0,
+        limit=bounds,
+        errordef=iminuit.Minuit.LEAST_SQUARES
+    )
+    m.strategy = 2
+    m.migrad()
+    m.hesse()
+
+    params = m.values.values()
 
     if fit_type == "gaussian":
         params[0] *= norm_func(params[1], *params)
 
-    chi_squared = np.nan  # not implemented yet
-    ndf = len(x) - len(params)
-    return fit_type, params, cov_params, chi_squared, ndf, x_range
+    y_range = (-np.inf, np.inf)  # Not implemented yet
+    return fit_type, tuple(params), tuple(m.errors.values()), m.fval, len(x) - m.nfit, x_range, y_range
+
+
+    # result = iminuit.minimize(fcn, x0, bounds=bounds)
+    # params, cov_params = result["x"], result["hess_inv"]
+    # chi_squared = np.nan  # not implemented yet
+    # ndf = len(x) - len(params)
+    # return fit_type, params, tuple(m.errors.values()), chi_squared, ndf, x_range,
 

@@ -89,7 +89,7 @@ def fit(fig, fit_type, row=1, col=1, i_data=1, trace_type=None, fit_stats=True, 
         else:
             y_ = y
 
-        result = standard_fit.fit(x_, y_, fit_type, x_err=x_err, y_err=y_err, **fit_kwargs)
+        result = standard_fit.fit(x_, y_, fit_type, error_x=x_err, error_y=y_err, **fit_kwargs)
         if result is None:
             return fig
 
@@ -106,7 +106,7 @@ def fit(fig, fit_type, row=1, col=1, i_data=1, trace_type=None, fit_stats=True, 
                 f" with time unit {time_unit})"
             ])
     else:
-        result = standard_fit.fit(x, y, fit_type, x_err=x_err, y_err=y_err, **fit_kwargs)
+        result = standard_fit.fit(x, y, fit_type, error_x=x_err, error_y=y_err, **fit_kwargs)
         if result is None:
             return fig
 
@@ -122,13 +122,13 @@ def fit(fig, fit_type, row=1, col=1, i_data=1, trace_type=None, fit_stats=True, 
     if row is None and col is None:
         if not hasattr(fig, "_fit_results"):
             n_data = len(fig.data) - 1
-            fig._fit_results = np.ma.zeros(n_data, dtype=list(standard_fit.fit_dtype.items()))
+            fig._fit_results = np.ma.zeros(n_data, dtype=standard_fit.fit_dtype)
             fig._fit_results.mask = True
         fig._fit_results[i_data-1] = result
     else:
         if not hasattr(fig, "_fit_results"):
             n_row, n_col, n_data, *_ = np.shape(fig._grid_ref)
-            fig._fit_results = np.ma.zeros((n_row, n_col, n_data), dtype=list(standard_fit.fit_dtype.items()))
+            fig._fit_results = np.ma.zeros((n_row, n_col, n_data), dtype=standard_fit.fit_dtype)
             fig._fit_results.mask = True
         fig._fit_results[row-1][col-1][i_data-1] = result
 

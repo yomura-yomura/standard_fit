@@ -2,9 +2,33 @@ import numpy as np
 import numpy_utility as npu
 from . import functions
 import iminuit
+import warnings
 
 
-fit_dtype = dict(
+# dict([
+#     ("is_valid", bool), ("has_valid_parameters", bool), ("has_reached_call_limit", bool),
+#     ("is_above_max_edm", bool),
+#     ("edm", "f8"), ("ncalls", "i4"),
+# ])
+
+
+def to_dtype(type: dict):
+    return np.dtype(list(type.items()))
+
+
+status_type = dict(
+    is_valid=bool,
+    has_valid_parameters=bool, has_reached_call_limit=bool, is_above_max_edm=bool,
+    edm='f8', ncalls='i4'
+)
+
+status_dtype = to_dtype(status_type)
+
+minos_type = dict(
+
+)
+
+fit_type = dict(
     fit_type="U20",
     params="O",
     # cov_mat="O",
@@ -12,8 +36,11 @@ fit_dtype = dict(
     fcn="f8",
     ndf="i8",
     x_range=("f8", 2),
-    y_range=("f8", 2)
+    y_range=("f8", 2),
+    status=status_dtype
 )
+
+fit_dtype = to_dtype(fit_type)
 
 
 # def any_along_column(a):
@@ -40,7 +67,7 @@ def to_numpy(obj):
         obj = np.array(obj)
         mask = None
 
-    base_dtype = fit_dtype.copy()
+    base_fit_type = fit_type.copy()
 
     if mask is not None:
         obj = obj[~mask]
@@ -50,21 +77,18 @@ def to_numpy(obj):
     if obj.dtype.names is not None:
         obj = np.array(obj.tolist())
 
-    obj = obj.reshape((-1, len(base_dtype)))
+    obj = obj.reshape((-1, len(base_fit_type)))
 
     fit_types = obj[..., 0]
 
-    base_dtype["fit_type"] = "U{}".format(max([len(ft) for ft in fit_types]))
+    base_fit_type["fit_type"] = "U{}".format(max([len(ft) for ft in fit_types]))
 
     if len(np.unique(fit_types)) == 1:
-        # base_dtype["params"] = [(n, "f8") for n in functions.get_parameter_names(fit_types[0])]
-        # base_dtype["cov_mat"] = [(n, base_dtype["params"]) for n in functions.get_parameter_names(fit_types[0])]
         n_params = len(functions.get_parameter_names(fit_types[0]))
-        base_dtype["params"] = ("f8", n_params)
-        # base_dtype["cov_mat"] = ("f8", (n_params, n_params))
-        base_dtype["err_params"] = ("f8", n_params)
+        base_fit_type["params"] = ("f8", n_params)
+        base_fit_type["err_params"] = ("f8", n_params)
 
-    obj = np.fromiter(map(tuple, obj), list(base_dtype.items())).reshape(original_shape)
+    obj = np.fromiter(map(tuple, obj), list(base_fit_type.items())).reshape(original_shape)
     if mask is None:
         return obj
     else:
@@ -75,7 +99,13 @@ def to_numpy(obj):
 
 
 def _validate_data_set(a):
-    a = np.array(a)
+    if isinstance(a, np.ma.MaskedArray):
+        a = a.compressed()
+    elif isinstance(a, np.ndarray):
+        pass
+    else:
+        a = np.array(a)
+
     if np.issubdtype(a.dtype, np.object_):
         try:
             a = a.astype("M8")
@@ -102,19 +132,15 @@ def _valid_range(x_range, x):
     return x_range
 
 
-def fit(x, y, fit_type, x_err=None, y_err=None,
+def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_parameter=None,
         initial_guess=None, bounds=None, x_range=(), y_range=(), print_result=True):
-    assert len(x) == len(y)
+    if len(x) != len(y):
+        raise ValueError("mismatch length of x and y")
 
     fit_type = fit_type.replace(" ", "_")
-    if fit_type not in functions.__all__:
-        raise ValueError(f"Not available fit type: {fit_type}")
 
     x = _validate_data_set(x)
     y = _validate_data_set(y)
-
-    # if np.issubdtype(x.dtype, np.datetime64) or np.issubdtype(y.dtype, np.datetime64):
-    #     return fit_time_series(x, y, fit_type, y_err, initial_guess, bounds, x_range, y_range, print_result)
 
     valid_selection = np.isfinite(x) | np.isfinite(y)
 
@@ -127,11 +153,19 @@ def fit(x, y, fit_type, x_err=None, y_err=None,
     )
 
     selection = valid_selection & range_selection
-    x = x[selection]
-    y = y[selection]
-
     if np.count_nonzero(selection) == 0:
         return None
+
+    x = x[selection]
+    y = y[selection]
+    if error_x is not None and not callable(error_y):
+        if len(x) != len(error_x):
+            raise ValueError("mismatch length of x and error_x")
+        error_x = _validate_data_set(error_x)[selection]
+    if error_y is not None and not callable(error_y):
+        if len(y) != len(error_y):
+            raise ValueError("mismatch length of y and error_y")
+        error_y = _validate_data_set(error_y)[selection]
 
     if initial_guess is None:
         initial_guess = functions.estimate_initial_guess(fit_type, x, y)
@@ -140,35 +174,89 @@ def fit(x, y, fit_type, x_err=None, y_err=None,
 
     fit_func = functions.get_func(fit_type)
 
-    if x_err is None and y_err is None:
+    functions.standard.functions.np = np
+    functions.custom.functions.np = np
+    grad_fcn = None
+
+    if error_x is None and error_y is None:
         def fcn(p):
-            return np.sum((fit_func(x, *p) - y) ** 2)
-    elif x_err is not None and y_err is not None:
-        assert len(selection) == len(x_err) == len(y_err)
-        import jax
-        from .functions import gradient
-        differential_fit_func = gradient.get_func(fit_type)
-
-        @jax.jit
+            return np.sum((y - fit_func(x, *p)) ** 2)
+    elif error_x is not None and error_y is not None:
+        print("* Both error_x and error_y have been specified.")
+        raise NotImplementedError
+        # import jax
+        # import jax.numpy as jnp
+        # # from .functions import gradient
+        # # differential_fit_func = gradient.get_func(fit_type)
+        #
+        # functions.standard.functions.np = jnp
+        # functions.custom.functions.np = jnp
+        #
+        # fit_func = jax.jit(fit_func)
+        # # differential_fit_func = jax.jit(jax.grad(fit_func))
+        #
+        # def make_differential_fit_func(n):
+        #     @jax.jit
+        #     def _inner(sigma_x, x, *params):
+        #         i_differential_fit_func = fit_func
+        #         result = 0.0
+        #         factorial = 1
+        #         for i in range(1, n+1):
+        #             factorial *= i
+        #             i_differential_fit_func = jax.jit(jax.grad(i_differential_fit_func))
+        #             result += i_differential_fit_func(x, *params) * sigma_x ** i / factorial
+        #         return result
+        #     return _inner
+        #
+        # tol = 1e-4
+        #
+        # def get_last_residual_term(params):
+        #     return np.array([
+        #         n_differential_fit_func(error_x, ix, *params) - n_minus_differential_fit_func(error_x, ix, *params)
+        #         for ix in x
+        #     ])
+        #
+        # for n in range(1, 5):
+        #     n_differential_fit_func = make_differential_fit_func(n)
+        #     n_minus_differential_fit_func = make_differential_fit_func(n-1)
+        #     x_propagated_sigma = np.abs(get_last_residual_term(initial_guess))
+        #     if x_propagated_sigma.max() < tol:
+        #         break
+        # else:
+        #     raise ValueError("n >= 5")
+        #
+        # print(f"* [Debug Message] n = {n}")
+        # print(f"* [Debug Message] x_propagated_sigma.max() = {x_propagated_sigma.max()}")
+        # # assert x_propagated_sigma.max() < 0.1
+        #
+        # @jax.jit
         def fcn(par):
-            result = 0.0
-            for xi, yi, xei, yei in zip(x, y, x_err, y_err):
-                y_var = yei ** 2 + (differential_fit_func(xi, *par) * xei) ** 2
-                result += (yi - fit_func(xi, *par)) ** 2 / y_var
+            # result = 0.0
+            # for xi, yi, xei, yei in zip(x, y, error_x, error_y):
+            #     y_var = yei ** 2 + (differential_fit_func(xi, *par) * xei) ** 2
+            #     result += (yi - fit_func(xi, *par)) ** 2 / y_var
+            # for xi, yi, xei, yei in zip(x, y, error_x, error_y):
+            #     y_var = yei ** 2 + n_differential_fit_func(xei, xi, *par) ** 2
+            #     result += (yi - fit_func(xi, *par)) ** 2 / y_var
+
+            y_var = error_y ** 2 + (fit_func(x + error_x, *par) - fit_func(x, *par)) ** 2
+            result = ((y - fit_func(x, *par)) ** 2 / y_var).sum()
+
             return result
+
+        # grad_fcn = jax.jit(jax.grad(fcn))
+        # fcn = (fcn)
+        print('* Start optimizing using jax automatic differentiation (it may take a long time)')
     else:
-        if x_err is not None:
-            assert len(selection) == len(x_err)
-            x_err = x_err[selection]
-
-            def fcn(p):
-                return np.sum(((fit_func(x, *p) - y) / x_err) ** 2)
+        if error_x is not None:
+            raise ValueError("error_x is specified, but error_y is not")
         else:
-            assert len(selection) == len(y_err)
-            y_err = y_err[selection]
-
-            def fcn(p):
-                return np.sum(((fit_func(x, *p) - y) / y_err) ** 2)
+            if callable(error_y):
+                def fcn(p):
+                    return np.sum(((y - fit_func(x, *p)) / error_y(x, y, *p)) ** 2)
+            else:
+                def fcn(p):
+                    return np.sum(((y - fit_func(x, *p)) / error_y) ** 2)
 
     # from .functions import gradient
     # ff = gradient.get_func(fit_type)
@@ -184,20 +272,34 @@ def fit(x, y, fit_type, x_err=None, y_err=None,
 
     m = iminuit.Minuit.from_array_func(
         fcn,
-        # grad=grad_fcn,
+        grad=grad_fcn,
         start=initial_guess,
+        error=parameter_error,
         limit=bounds,
+        fix=fix_parameter,
         errordef=iminuit.Minuit.LEAST_SQUARES
     )
     m.strategy = 2
     m.migrad()
-    m.hesse()
 
     if print_result:
-        m.print_fmin()
-        m.print_param()
+        print(m.fmin)
+        print(m.params)
 
-    return fit_type, tuple(m.values.values()), tuple(m.errors.values()), m.fval, len(x) - m.nfit, x_range, y_range
+#     if "jax" in locals():
+#         x_propagated_sigma = np.abs(get_last_residual_term(m.values.values()))
+#         print(f"* [Debug Message] x_propagated_sigma.max() = {x_propagated_sigma.max()}")
+#         if (x_propagated_sigma > tol).any():
+#             warnings.warn(f"""
+# the error of y that x propagated to is larger than expected ({tol:.1e}).
+# ascending-order-sorted x_propagated_sigma:
+# {np.sort(x_propagated_sigma)}
+#     """)
+
+    return (
+        fit_type, tuple(m.values.values()), tuple(m.errors.values()), m.fval, len(x) - m.nfit, x_range, y_range,
+        tuple(m.fmin[k] for k in status_type)
+    )
 
 
 # def fit_time_series(x, y, fit_type, y_err=None, initial_guess=None, bounds=None, x_range=(), y_range=(), print_result=True):

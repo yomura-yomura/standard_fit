@@ -9,4 +9,4 @@ if __name__ == "__main__":
     x = np.linspace(-5, 5, 20)
     y = np.poly1d([1, 3, -9, 4])(x) + np.random.normal(0, 2, size=len(x))
     fig = sfpx.scatter(x, y, "pol3")
-    # fig.show()
+    fig.show()
