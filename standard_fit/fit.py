@@ -85,8 +85,8 @@ def to_numpy(obj):
 
     if len(np.unique(fit_types)) == 1:
         n_params = len(functions.get_parameter_names(fit_types[0]))
-        base_fit_type["params"] = ("f8", n_params)
-        base_fit_type["err_params"] = ("f8", n_params)
+        base_fit_type["params"] = ("f8", (n_params,))
+        base_fit_type["err_params"] = ("f8", (n_params,))
 
     obj = np.fromiter(map(tuple, obj), list(base_fit_type.items())).reshape(original_shape)
     if mask is None:

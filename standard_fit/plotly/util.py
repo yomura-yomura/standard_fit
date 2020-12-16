@@ -45,7 +45,7 @@ def get_fit_trace(result, x, n_points=1000, log_x=False, flip_xy=False, **kwargs
 
 def add_annotation(fig, fit_result, row=1, col=1, i_data=1,
                    # text_size=15
-                   text_size=20
+                   text_size=40
                    ):
     # fit_type, params, cov_params, chi_squared, ndf, *_ = fit_result
     fit_type, params, err_params, chi_squared, ndf, *_ = fit_result
