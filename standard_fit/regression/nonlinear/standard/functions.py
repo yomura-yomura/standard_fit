@@ -8,7 +8,7 @@ __all__ = [
     "exp10",
     "tanh",
     "approx_landau", "kde",
-    *[f"pol{i}" for i in range(10)]
+    # *[f"pol{i}" for i in range(10)]
 ]
 
 # @numba.njit
@@ -58,17 +58,17 @@ def kde(x, _func, pk, x0):
     return _func(x)
 
 
-def _make_pol_n(n):
-    # Make n-dimensional polynomial
-    kwargs = [f"p{i}" for i in range(n + 1)]
-    formula = "+".join([f"{p}*x**{i}" for i, p in enumerate(kwargs)])
-    unpacked_kwargs = ", ".join(kwargs)
-    exec(f"def pol{n}(x, {unpacked_kwargs}): return {formula}")
-    globals()[f"pol{n}"] = eval(f"pol{n}")
-
-
-for i in range(10):
-    _make_pol_n(i)
+# def _make_pol_n(n):
+#     # Make n-dimensional polynomial
+#     kwargs = [f"p{i}" for i in range(n + 1)]
+#     formula = "+".join([f"{p}*x**{i}" for i, p in enumerate(kwargs)])
+#     unpacked_kwargs = ", ".join(kwargs)
+#     exec(f"def pol{n}(x, {unpacked_kwargs}): return {formula}")
+#     globals()[f"pol{n}"] = eval(f"pol{n}")
+#
+#
+# for i in range(10):
+#     _make_pol_n(i)
 
 
 def _get_func(fit_type: str):

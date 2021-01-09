@@ -1,5 +1,5 @@
 import numpy as np
-from . import functions
+from .regression import nonlinear
 
 
 def integrate(func, params, min_x, max_x):
@@ -8,7 +8,7 @@ def integrate(func, params, min_x, max_x):
 
 
 def get_normalized_function(fit_type, min_x, max_x):
-    func = functions.get_func(fit_type)
+    func = nonlinear.get_func(fit_type)
 
     def norm_func(x, *params):
         return func(x, *params) / (integrate(func, params, min_x, max_x)[0])
@@ -38,28 +38,24 @@ def fit(x, fit_type, x_range=()):
     else:
         import warnings
         warnings.warn(f"Unspecified fit_type = {fit_type}")
-        x0 = [1] * len(functions.get_parameter_names(fit_type))
+        x0 = [1] * len(nonlinear.get_parameter_names(fit_type))
         bounds = None
 
     import iminuit
-    m = iminuit.Minuit.from_array_func(
-        fcn,
-        # grad=grad_fcn,
-        start=x0,
-        limit=bounds,
-        errordef=iminuit.Minuit.LEAST_SQUARES
-    )
+    m = iminuit.Minuit(fcn, x0)
+    m.limits = bounds
+    m.errordef = iminuit.Minuit.LIKELIHOOD
     m.strategy = 2
+    m.simplex()
     m.migrad()
-    m.hesse()
 
-    params = m.values.values()
+    params = m.values
 
     if fit_type == "gaussian":
         params[0] *= norm_func(params[1], *params)
 
     y_range = (-np.inf, np.inf)  # Not implemented yet
-    return fit_type, tuple(params), tuple(m.errors.values()), m.fval, len(x) - m.nfit, x_range, y_range
+    return fit_type, tuple(params), tuple(m.errors), m.fval, len(x) - m.nfit, x_range, y_range
 
 
     # result = iminuit.minimize(fcn, x0, bounds=bounds)

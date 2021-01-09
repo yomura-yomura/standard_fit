@@ -2,7 +2,11 @@ from . import standard, custom
 import inspect
 
 
-__all__ = ["get_func", "get_parameter_names"]
+__all__ = ["is_defined", "get_func", "get_parameter_names"]
+
+
+def is_defined(fit_type):
+    return (fit_type in standard.__all__) or (fit_type in custom.__all__)
 
 
 def _validate_fit_type(fit_type):

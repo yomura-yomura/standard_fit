@@ -1,6 +1,6 @@
 import numpy as np
 import numpy_utility as npu
-from . import functions
+from . import regression
 import iminuit
 import warnings
 
@@ -19,7 +19,9 @@ def to_dtype(type: dict):
 status_type = dict(
     is_valid=bool,
     has_valid_parameters=bool, has_reached_call_limit=bool, is_above_max_edm=bool,
-    edm='f8', ncalls='i4'
+    edm="f8",
+    # ncalls='i4'
+    nfcn="i4"
 )
 
 status_dtype = to_dtype(status_type)
@@ -41,18 +43,6 @@ fit_type = dict(
 )
 
 fit_dtype = to_dtype(fit_type)
-
-
-# def any_along_column(a):
-#     assert a.dtype.names is not None
-#     assert len(a.dtype.names) > 0
-#
-#     ndim = a.ndim
-#     return np.any(
-#         [a[n] if a[n].ndim <= ndim else a[n].any(axis=tuple(np.arange(ndim, a[n].ndim)))
-#          for n in a.dtype.names],
-#         axis=0
-#     )
 
 
 def to_numpy(obj):
@@ -84,7 +74,7 @@ def to_numpy(obj):
     base_fit_type["fit_type"] = "U{}".format(max([len(ft) for ft in fit_types]))
 
     if len(np.unique(fit_types)) == 1:
-        n_params = len(functions.get_parameter_names(fit_types[0]))
+        n_params = len(regression.get_parameter_names(fit_types[0]))
         base_fit_type["params"] = ("f8", (n_params,))
         base_fit_type["err_params"] = ("f8", (n_params,))
 
@@ -133,7 +123,7 @@ def _valid_range(x_range, x):
 
 
 def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_parameter=None,
-        initial_guess=None, bounds=None, x_range=(), y_range=(), print_result=True):
+        initial_guess=None, bounds=None, x_range=(), y_range=(), print_result=True, **kwargs):
     if len(x) != len(y):
         raise ValueError("mismatch length of x and y")
 
@@ -167,15 +157,25 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
             raise ValueError("mismatch length of y and error_y")
         error_y = _validate_data_set(error_y)[selection]
 
+    if regression.linear.is_defined(fit_type):
+        params, err_params, fval, ndf = regression.linear.get_fit_func(fit_type)(x, y, error_y=error_y, **kwargs)
+        return (
+            fit_type,
+            params, err_params,
+            fval, ndf,
+            x_range, y_range,
+            np.empty(1, np.dtype(list(status_type.items())))
+        )
+
     if initial_guess is None:
-        initial_guess = functions.estimate_initial_guess(fit_type, x, y)
+        initial_guess = regression.nonlinear.estimate_initial_guess(fit_type, x, y)
         if fit_type == "gaussian":
             bounds = [None, None, (0, None)]
 
-    fit_func = functions.get_func(fit_type)
+    fit_func = regression.nonlinear.get_func(fit_type)
 
-    functions.standard.functions.np = np
-    functions.custom.functions.np = np
+    regression.nonlinear.standard.functions.np = np
+    regression.nonlinear.custom.functions.np = np
     grad_fcn = None
 
     if error_x is None and error_y is None:
@@ -184,69 +184,69 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
     elif error_x is not None and error_y is not None:
         print("* Both error_x and error_y have been specified.")
         raise NotImplementedError
-        # import jax
-        # import jax.numpy as jnp
-        # # from .functions import gradient
-        # # differential_fit_func = gradient.get_func(fit_type)
+        # # import jax
+        # # import jax.numpy as jnp
+        # # # from .functions import gradient
+        # # # differential_fit_func = gradient.get_func(fit_type)
+        # #
+        # # functions.standard.functions.np = jnp
+        # # functions.custom.functions.np = jnp
+        # #
+        # # fit_func = jax.jit(fit_func)
+        # # # differential_fit_func = jax.jit(jax.grad(fit_func))
+        # #
+        # # def make_differential_fit_func(n):
+        # #     @jax.jit
+        # #     def _inner(sigma_x, x, *params):
+        # #         i_differential_fit_func = fit_func
+        # #         result = 0.0
+        # #         factorial = 1
+        # #         for i in range(1, n+1):
+        # #             factorial *= i
+        # #             i_differential_fit_func = jax.jit(jax.grad(i_differential_fit_func))
+        # #             result += i_differential_fit_func(x, *params) * sigma_x ** i / factorial
+        # #         return result
+        # #     return _inner
+        # #
+        # # tol = 1e-4
+        # #
+        # # def get_last_residual_term(params):
+        # #     return np.array([
+        # #         n_differential_fit_func(error_x, ix, *params) - n_minus_differential_fit_func(error_x, ix, *params)
+        # #         for ix in x
+        # #     ])
+        # #
+        # # for n in range(1, 5):
+        # #     n_differential_fit_func = make_differential_fit_func(n)
+        # #     n_minus_differential_fit_func = make_differential_fit_func(n-1)
+        # #     x_propagated_sigma = np.abs(get_last_residual_term(initial_guess))
+        # #     if x_propagated_sigma.max() < tol:
+        # #         break
+        # # else:
+        # #     raise ValueError("n >= 5")
+        # #
+        # # print(f"* [Debug Message] n = {n}")
+        # # print(f"* [Debug Message] x_propagated_sigma.max() = {x_propagated_sigma.max()}")
+        # # # assert x_propagated_sigma.max() < 0.1
+        # #
+        # # @jax.jit
+        # def fcn(par):
+        #     # result = 0.0
+        #     # for xi, yi, xei, yei in zip(x, y, error_x, error_y):
+        #     #     y_var = yei ** 2 + (differential_fit_func(xi, *par) * xei) ** 2
+        #     #     result += (yi - fit_func(xi, *par)) ** 2 / y_var
+        #     # for xi, yi, xei, yei in zip(x, y, error_x, error_y):
+        #     #     y_var = yei ** 2 + n_differential_fit_func(xei, xi, *par) ** 2
+        #     #     result += (yi - fit_func(xi, *par)) ** 2 / y_var
         #
-        # functions.standard.functions.np = jnp
-        # functions.custom.functions.np = jnp
+        #     y_var = error_y ** 2 + (fit_func(x + error_x, *par) - fit_func(x, *par)) ** 2
+        #     result = ((y - fit_func(x, *par)) ** 2 / y_var).sum()
         #
-        # fit_func = jax.jit(fit_func)
-        # # differential_fit_func = jax.jit(jax.grad(fit_func))
+        #     return result
         #
-        # def make_differential_fit_func(n):
-        #     @jax.jit
-        #     def _inner(sigma_x, x, *params):
-        #         i_differential_fit_func = fit_func
-        #         result = 0.0
-        #         factorial = 1
-        #         for i in range(1, n+1):
-        #             factorial *= i
-        #             i_differential_fit_func = jax.jit(jax.grad(i_differential_fit_func))
-        #             result += i_differential_fit_func(x, *params) * sigma_x ** i / factorial
-        #         return result
-        #     return _inner
-        #
-        # tol = 1e-4
-        #
-        # def get_last_residual_term(params):
-        #     return np.array([
-        #         n_differential_fit_func(error_x, ix, *params) - n_minus_differential_fit_func(error_x, ix, *params)
-        #         for ix in x
-        #     ])
-        #
-        # for n in range(1, 5):
-        #     n_differential_fit_func = make_differential_fit_func(n)
-        #     n_minus_differential_fit_func = make_differential_fit_func(n-1)
-        #     x_propagated_sigma = np.abs(get_last_residual_term(initial_guess))
-        #     if x_propagated_sigma.max() < tol:
-        #         break
-        # else:
-        #     raise ValueError("n >= 5")
-        #
-        # print(f"* [Debug Message] n = {n}")
-        # print(f"* [Debug Message] x_propagated_sigma.max() = {x_propagated_sigma.max()}")
-        # # assert x_propagated_sigma.max() < 0.1
-        #
-        # @jax.jit
-        def fcn(par):
-            # result = 0.0
-            # for xi, yi, xei, yei in zip(x, y, error_x, error_y):
-            #     y_var = yei ** 2 + (differential_fit_func(xi, *par) * xei) ** 2
-            #     result += (yi - fit_func(xi, *par)) ** 2 / y_var
-            # for xi, yi, xei, yei in zip(x, y, error_x, error_y):
-            #     y_var = yei ** 2 + n_differential_fit_func(xei, xi, *par) ** 2
-            #     result += (yi - fit_func(xi, *par)) ** 2 / y_var
-
-            y_var = error_y ** 2 + (fit_func(x + error_x, *par) - fit_func(x, *par)) ** 2
-            result = ((y - fit_func(x, *par)) ** 2 / y_var).sum()
-
-            return result
-
-        # grad_fcn = jax.jit(jax.grad(fcn))
-        # fcn = (fcn)
-        print('* Start optimizing using jax automatic differentiation (it may take a long time)')
+        # # grad_fcn = jax.jit(jax.grad(fcn))
+        # # fcn = (fcn)
+        # print('* Start optimizing using jax automatic differentiation (it may take a long time)')
     else:
         if error_x is not None:
             raise ValueError("error_x is specified, but error_y is not")
@@ -270,15 +270,17 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
     # def grad_fcn(p):
     #     return jnp.sum(-2 * jnp.array([gff(x_, *p) for x_ in x]) * (y - ff(x, *p)))
 
-    m = iminuit.Minuit.from_array_func(
-        fcn,
-        grad=grad_fcn,
-        start=initial_guess,
-        error=parameter_error,
-        limit=bounds,
-        fix=fix_parameter,
-        errordef=iminuit.Minuit.LEAST_SQUARES
+    m = iminuit.Minuit(
+        fcn, initial_guess,
+        grad=grad_fcn
     )
+    if parameter_error is not None:
+        m.errors = parameter_error
+    if bounds is not None:
+        m.limits = bounds
+    if fix_parameter is not None:
+        m.fixed = fix_parameter
+    m.errordef = iminuit.Minuit.LEAST_SQUARES
     m.strategy = 2
     m.migrad()
 
@@ -297,39 +299,9 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
 #     """)
 
     return (
-        fit_type, tuple(m.values.values()), tuple(m.errors.values()), m.fval, len(x) - m.nfit, x_range, y_range,
-        tuple(m.fmin[k] for k in status_type)
+        fit_type, tuple(m.values), tuple(m.errors), m.fval, len(x) - m.nfit, x_range, y_range,
+        tuple(getattr(m.fmin, k) for k in status_type)
     )
-
-
-# def fit_time_series(x, y, fit_type, y_err=None, initial_guess=None, bounds=None, x_range=(), y_range=(), print_result=True):
-#     x = _validate_data_set(x)
-#     y = _validate_data_set(y)
-#
-#     if np.issubdtype(x.dtype, np.datetime64):
-#         # x_ = (x - np.min(x)).astype(int)
-#         x_ = x.astype(int)
-#         print("x is scaled on {}, starts from {}".format(
-#             "".join(str(e) for e in reversed(np.datetime_data(x.dtype))),
-#             np.min(x)
-#         ))
-#     else:
-#         x_ = x
-#
-#     if np.issubdtype(y.dtype, np.datetime64):
-#         # y_ = (y - np.min(y)).astype(int)
-#         y_ = y.astype(int)
-#         print("y is scaled on {}, starts from {}".format(
-#             "".join(str(e) for e in reversed(np.datetime_data(y.dtype))),
-#             np.min(y)
-#         ))
-#     else:
-#         y_ = y
-#
-#     assert y_err is None
-#     return fit(x_, y_, fit_type, y_err, initial_guess, bounds, x_range, y_range, print_result)
-
-
 
 
 def gaussian_fit(x, **kwargs):
@@ -339,33 +311,6 @@ def gaussian_fit(x, **kwargs):
     y = counts
 
     return fit(x, y, "gaussian", **kwargs)
-
-
-# def gaussian_fit_and_fig(x, px_kwargs={}, **kwargs):
-#     from standard_fit.plotly.express import _plotly_express as _px
-#     fig = _px.histogram(x=x, fit_type="gaussian", fit_stats=True, **px_kwargs)
-#     return fig
-#
-#
-# def gaussian_fit_and_show(x, **kwargs):
-#     fig = gaussian_fit_and_fig(x, **kwargs)
-#     fig.show(config=dict(editable=True))
-#
-#
-# def fit_and_fig(x, y, fit_type, px_kwargs={}, *args, **kwargs):
-#     from standard_fit.plotly.express import _plotly_express as _px
-#     result = fit(x, y, fit_type, *args, **kwargs)
-#     fig = _px.scatter(x, y, result, **px_kwargs)
-#     return fig
-#
-#
-# def fit_and_show(x, y, fit_type, px_kwargs={}, *args, **kwargs):
-#     from standard_fit.plotly.express import _plotly_express as _px
-#     result = fit(x, y, fit_type, *args, **kwargs)
-#     fig = _px.scatter(x, y, result, **px_kwargs)
-#     fig.show(config=dict(editable=True))
-
-    
 
 
 
