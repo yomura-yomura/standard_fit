@@ -53,8 +53,43 @@ y = 2sin(x) + 5cos(2x) + 9cos(5x)
 
 .. list-table::
 
-    * - .. figure:: ./fs.png
+    * - .. image:: ./fs.png
     
-      - .. figure:: ./fs_lasso.png
+      - .. image:: ./fs_lasso.png
 
 Note that error values cannot be calculated in linear regression with LASSO regularization
+
+
+Nonlinear Regression
+~~~~~~~~~~~~~~~~~~~~
+
+Gaussian x ~ N(5, 2)
+^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+    import numpy as np
+    import standard_fit.plotly.express as sfpx
+
+    x = np.random.normal(5, 2, size=1_000_000)
+    fig = sfpx.histogram(x, fit_type="gaussian")
+    fig.show()
+
+
+.. image:: ./gaus.png
+
+
+Gaussian x ~ N(5, 2) (Unbinned Maximum Likelihood fit)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+    import numpy as np
+    import standard_fit.plotly.express as sfpx
+
+    x = np.random.normal(5, 2, size=1_000)
+    fig = sfpx.histogram(x, fit_type="gaussian", umlf=True, histnorm="probability density")
+    fig.show()
+
+
+.. image:: ./gaus_umlf.png

@@ -13,7 +13,7 @@ __all__ = [
 
 # @numba.njit
 def gaussian(x, A, μ, σ):
-    return A * np.exp(-0.5 * ((x - μ) / σ) ** 2)
+    return A / (np.sqrt(2 * np.pi) * σ) * np.exp(-0.5 * ((x - μ) / σ) ** 2)
 
 
 def power_law(x, A, s):

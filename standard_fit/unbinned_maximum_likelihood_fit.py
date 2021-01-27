@@ -1,9 +1,9 @@
 import numpy as np
 from .regression import nonlinear
+import scipy.integrate
 
 
 def integrate(func, params, min_x, max_x):
-    import scipy.integrate
     return scipy.integrate.quad(lambda x: func(x, *params), min_x, max_x)
 
 
@@ -51,16 +51,8 @@ def fit(x, fit_type, x_range=()):
 
     params = m.values
 
-    if fit_type == "gaussian":
-        params[0] *= norm_func(params[1], *params)
+    # if fit_type == "gaussian":
+    #     params[0] /= norm_func(params[1], *params)
 
     y_range = (-np.inf, np.inf)  # Not implemented yet
-    return fit_type, tuple(params), tuple(m.errors), m.fval, len(x) - m.nfit, x_range, y_range
-
-
-    # result = iminuit.minimize(fcn, x0, bounds=bounds)
-    # params, cov_params = result["x"], result["hess_inv"]
-    # chi_squared = np.nan  # not implemented yet
-    # ndf = len(x) - len(params)
-    # return fit_type, params, tuple(m.errors.values()), chi_squared, ndf, x_range,
-
+    return fit_type, tuple(params), tuple(m.errors), m.fval/2, len(x) - m.nfit, x_range, y_range
