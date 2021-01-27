@@ -2,7 +2,7 @@ import numpy as np
 import numpy_utility as npu
 from . import regression
 import iminuit
-import warnings
+# import warnings
 
 
 # dict([
@@ -26,9 +26,9 @@ status_type = dict(
 
 status_dtype = to_dtype(status_type)
 
-minos_type = dict(
-
-)
+# minos_type = dict(
+#
+# )
 
 fit_type = dict(
     fit_type="U20",
@@ -134,6 +134,11 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
 
     valid_selection = np.isfinite(x) | np.isfinite(y)
 
+    if callable(x_range):
+        x_range = x_range(x, y)
+    if callable(y_range):
+        y_range = y_range(x, y)
+
     x_range = _valid_range(x_range, x[valid_selection])
     y_range = _valid_range(y_range, y[valid_selection])
 
@@ -174,8 +179,8 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
 
     fit_func = regression.nonlinear.get_func(fit_type)
 
-    regression.nonlinear.standard.functions.np = np
-    regression.nonlinear.custom.functions.np = np
+    # regression.nonlinear.standard.functions.np = np
+    # regression.nonlinear.custom.functions.np = np
     grad_fcn = None
 
     if error_x is None and error_y is None:
@@ -282,6 +287,8 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
         m.fixed = fix_parameter
     m.errordef = iminuit.Minuit.LEAST_SQUARES
     m.strategy = 2
+
+    m.simplex()
     m.migrad()
 
     if print_result:
@@ -311,7 +318,4 @@ def gaussian_fit(x, **kwargs):
     y = counts
 
     return fit(x, y, "gaussian", **kwargs)
-
-
-
 
