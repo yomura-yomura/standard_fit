@@ -57,7 +57,7 @@ y = 2sin(x) + 5cos(2x) + 9cos(5x)
     
       - .. image:: ./fs_lasso.png
 
-Note that error values cannot be calculated in linear regression with LASSO regularization
+Note that error values cannot be calculated in linear regression with LASSO regularization.
 
 
 Nonlinear Regression
