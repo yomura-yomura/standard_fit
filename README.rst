@@ -9,7 +9,7 @@ standard_fit
 Linear Regression
 ~~~~~~~~~~~~~~~~~
 
-y = 2x + 1
+y = -2x + 1
 ^^^^^^^^^^^^^^
 
 .. code:: python
