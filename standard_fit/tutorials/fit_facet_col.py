@@ -15,7 +15,8 @@ if __name__ == "__main__":
     fig = sfpx.fit(
         pux.histogram(x=x, facet_col=col, facet_row=row),
         fit_type="gaussian",
-        row="all", col="all"
+        row="all", col="all",
+        # annotation_kwargs=dict(inside=False)
     )
 
     plot(fig)

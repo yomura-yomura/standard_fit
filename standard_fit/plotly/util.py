@@ -2,6 +2,9 @@ import numpy as np
 import plotly.graph_objs as go
 from standard_fit import regression
 from uncertainties import ufloat
+import warnings
+import tkinter as tk
+import tkinter.font
 
 
 __all__ = ["get_fit_trace", "add_annotation"]
@@ -47,62 +50,104 @@ def get_fit_trace(result, x, n_points=1000, log_x=False, flip_xy=False, **kwargs
     return go.Scattergl(mode="lines", x=fit_x, y=fit_y, **plot_kwargs)
 
 
-def add_annotation(fig, fit_result, row=1, col=1, i_data=1,
-                   # text_size=15
-                   text_size=40
-                   ):
-    # fit_type, params, cov_params, chi_squared, ndf, *_ = fit_result
+def add_annotation(
+        fig, fit_result, row=1, col=1, i_data=1,
+        inside=True,
+        use_font_size=False,
+        font_size=40,
+        annotation_family="Arial",
+        occupied_ratio=0.25,
+        valid_digits=4
+):
+    assert i_data == 1  # not implemented yet
     fit_type, params, err_params, chi_squared, ndf, *_ = fit_result
 
-    # err_params = [np.sqrt(cov_params[i][i]) for i in range(len(params))]
+    standard_height = 1000
+    standard_width = 1600
+    aspect_ratio = standard_height / standard_width  # 16:10
+
+    tk.Frame().destroy()
+    font = tk.font.Font(family="Arial", size=-font_size)
+
+    ws = " "
+    ws_width = font.measure(ws * 100) / 100
 
     def as_str(a, formats=None, align="right"):
         if formats is None:
             a = [f"{s}" for s in a]
         else:
             a = [f"{s:{f}}" for s, f in zip(a, formats)]
-        max_len = max([len(s) for s in a])
+
+        max_w = max(font.measure(s) for s in a)
         if align == "right":
-            return [f"{s:>{max_len}}" for s in a]
+            return [ws * int((max_w - font.measure(s)) / ws_width) + s if font.measure(s) < max_w else s for s in a]
+        elif align == "left":
+            return [s + ws * int((max_w - font.measure(s)) / ws_width) if font.measure(s) < max_w else s for s in a]
 
-    if fit_type == "kde":
-        str_params = [f"{ufloat(p, ep):.4g}".replace("+/-", " ± ") for p, ep in zip(params[1:], err_params[1:])]
-        text_lines = [
-            f"χ²/ndf = {chi_squared:.4g}/{ndf}",
-            *[f"{n} = {p}" for n, p in zip(as_str(regression.get_parameter_names(fit_type)[1:]), str_params)]
-        ]
-    else:
-        str_params = [f"{ufloat(p, ep):.4g}".replace("+/-", " ± ") for p, ep in zip(params, err_params)]
+    params = [0 if p == 0 else p for p in params]  # minus zeros to plus zeros
 
-        text_lines = [
-            f"χ²/ndf = {chi_squared:.4g}/{ndf}",
-            *[f"{n} = {p}" for n, p in zip(as_str(regression.get_parameter_names(fit_type)), str_params)]
-        ]
+    str_p, str_ep = zip(*(
+        f"{ufloat(p, ep):.{valid_digits}g}".split("+/-")
+        if not (np.isnan(p) or np.isnan(ep)) else (f"{p:.{valid_digits}g}", f"{ep:.{valid_digits}g}")
+        for p, ep in zip(params, err_params)
+    ))
 
-    if row is None and col is None:
-        x0 = y0 = 0.
+    text_lines = [
+        f"χ²/ndf = {chi_squared:.{valid_digits}g}/{ndf} ",
+        *[
+            f"{n} = {p} ± {ep} " for n, p, ep in zip(
+                as_str(regression.get_parameter_names(fit_type)),
+                as_str(str_p),
+                as_str(str_ep, align="left")
+            )
+          ]
+    ]
+
+
+    if not fig._has_subplots() or (row is None and col is None):
+        subplot = fig.layout  # not subplot in this case
+        x0 = 0.
         x1 = y1 = 1.
     else:
         subplot = fig.get_subplot(row, col)
         x0, x1 = subplot.xaxis.domain
         y0, y1 = subplot.yaxis.domain
-    scale = min(x1 - x0, y1 - y0)
 
-    if text_size * scale < 1:
-        scale = 1 / text_size
+    if fig.layout.width is None:
+        fig.layout.width = standard_width
+    if fig.layout.height is None:
+        fig.layout.height = fig.layout.width * aspect_ratio
+
+    if use_font_size is True:
+        scale = 1
+    else:
+        h = len(text_lines) * font.metrics("linespace") + 20 * (len(text_lines) - 1)
+        w = max(font.measure(l) for l in text_lines)
+        if h > fig.layout.height:
+            scale = fig.layout.height / h
+        else:
+            scale = 1
+
+        scale = min(scale, fig.layout.width * (x1 - x0) * occupied_ratio / w)
+
+        if font_size * scale < 1:
+            warnings.warn("Calculated text size is set to 1 because text size attribute must be greater than 1.")
+            scale = 1 / font_size
+
+        if not inside:
+            x1 -= (x1 - x0) * occupied_ratio
+            subplot.xaxis.domain = (x0, x1 - 5 / fig.layout.width * scale)
 
     fig.add_annotation(
-        # x=x0,
-        # y=y0,
         x=x1,
         y=y1,
-        # y=1,
-        xanchor="right",
+        xanchor="right" if inside else "left",
         yanchor="top",
         xref="paper",
         yref="paper",
         font=dict(
-            size=text_size * scale
+            family=annotation_family,
+            size=font_size * scale
         ),
         bordercolor="#c7c7c7",
         borderwidth=2 * scale,
@@ -112,6 +157,23 @@ def add_annotation(fig, fit_result, row=1, col=1, i_data=1,
         showarrow=False,
         text="<br>".join(text_lines)
     )
+
+
+# def _estimate_range(x: list):
+#     x_range = [min(x), max(x)]
+#     x_margin = 0.06 * (x_range[1] - x_range[0])
+#
+#     x_range[0] -= x_margin
+#     x_range[1] += x_margin
+#     return x_range
+#
+#
+# def set_estimated_range(fig):
+#     if fig.layout.xaxis.range is None:
+#         fig.update_xaxes(range=_estimate_range([x for trace in fig.data for x in trace.x]))
+#     if fig.layout.yaxis.range is None:
+#         fig.update_yaxes(range=_estimate_range([y for trace in fig.data for y in trace.y]))
+#     return fig
 
 
 

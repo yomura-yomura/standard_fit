@@ -136,7 +136,7 @@ def fit(fig, fit_type, row=1, col=1, i_data=1, trace_type=None, fit_stats=True, 
 
 
 def scatter(x, y, fit_type=None, fit_stats=True, fit_kwargs={},
-            fit_marginal_x=None, fit_marginal_y=None,
+            fit_marginal_x=None, fit_marginal_y=None, annotation_kwargs={},
             **kwargs):
     if fit_marginal_x is not None:
         kwargs["marginal_x"] = "histogram"
@@ -146,13 +146,13 @@ def scatter(x, y, fit_type=None, fit_stats=True, fit_kwargs={},
     fig = pux.scatter(x=x, y=y, **kwargs)
 
     if fit_type is not None:
-        fit(fig, fit_type, 1, 1, 1, fit_stats=fit_stats, **fit_kwargs)
+        fit(fig, fit_type, 1, 1, 1, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs, **fit_kwargs)
 
     if fit_marginal_x is not None:
-        fit(fig, fit_marginal_x, 2, 1, 1, fit_stats=fit_stats)
+        fit(fig, fit_marginal_x, 2, 1, 1, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs)
 
     if fit_marginal_y is not None:
-        fit(fig, fit_marginal_y, 1, 2, 1, fit_stats=fit_stats)
+        fit(fig, fit_marginal_y, 1, 2, 1, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs)
 
     return fig
 

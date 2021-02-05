@@ -7,8 +7,7 @@ __all__ = [
     "sin",
     "exp10",
     "tanh",
-    "approx_landau", "kde",
-    # *[f"pol{i}" for i in range(10)]
+    "approx_landau"
 ]
 
 # @numba.njit
@@ -51,12 +50,6 @@ def approx_landau(x, A, m, s):
 
     t = (x - m) / s
     return A * np.exp(-0.5 * (t + np.exp(-t)) + 0.5)
-
-
-# Maybe will be removed
-def kde(x, _func, pk, x0):
-    return _func(x)
-
 
 # def _make_pol_n(n):
 #     # Make n-dimensional polynomial

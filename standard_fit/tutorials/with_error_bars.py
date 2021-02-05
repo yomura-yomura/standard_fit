@@ -43,6 +43,7 @@ if __name__ == "__main__":
 
     fig = sfpx.fit(fig, "pol2", row=None, col=None, i_data=2)
 
+    fig.update_xaxes(range=[-0.5, 14])
     fig.update_yaxes(range=[-100, 300])
 
     fig.show()
