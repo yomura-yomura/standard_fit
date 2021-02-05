@@ -25,8 +25,7 @@ y = -2x + 1
     sfpx.fit(fig, "pol1")
     fig.show()
 
-.. raw:: html
-    :file: pol1.html
+.. image:: ./pol1.png
 
 y = 2sin(x) + 5cos(2x) + 9cos(5x)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -49,11 +48,10 @@ y = 2sin(x) + 5cos(2x) + 9cos(5x)
     sfpx.fit(fig, "fourier5", annotation_kwargs=dict(inside=False), fit_kwargs=dict(lasso_lambda=0.1))
     fig.show()
 
-.. raw:: html
-    :file: fs.html
+.. list-table::
 
-.. raw:: html
-    :file: fs_lasso.html
+    * - .. image:: ./fs.png
+      - .. image:: ./fs_lasso.png
 
 Note that error values cannot be calculated in linear regression with LASSO regularization.
 
@@ -74,8 +72,7 @@ Gaussian x ~ N(5, 2)
     fig.show()
 
 
-.. raw:: html
-    :file: gaus.html
+.. image:: ./gaus.png
 
 
 Gaussian x ~ N(5, 2) (Unbinned Maximum Likelihood fit)
@@ -91,5 +88,4 @@ Gaussian x ~ N(5, 2) (Unbinned Maximum Likelihood fit)
     fig.show()
 
 
-.. raw:: html
-    :file: gaus_umlf.html
+.. image:: gaus_umlf.png
