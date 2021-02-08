@@ -132,7 +132,7 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
     x = _validate_data_set(x)
     y = _validate_data_set(y)
 
-    valid_selection = np.isfinite(x) | np.isfinite(y)
+    valid_selection = np.isfinite(x) & np.isfinite(y)
 
     if callable(x_range):
         x_range = x_range(x, y)
@@ -143,11 +143,13 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
     y_range = _valid_range(y_range, y[valid_selection])
 
     range_selection = (
-        ((x_range[0] <= x) & (x <= x_range[1])) &
-        ((y_range[0] <= y) & (y <= y_range[1]))
+        ((x_range[0] <= x[valid_selection]) & (x[valid_selection] <= x_range[1])) &
+        ((y_range[0] <= y[valid_selection]) & (y[valid_selection] <= y_range[1]))
     )
 
-    selection = valid_selection & range_selection
+    selection = valid_selection
+    selection[valid_selection] &= range_selection
+
     if np.count_nonzero(selection) == 0:
         return None
 

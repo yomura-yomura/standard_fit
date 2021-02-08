@@ -39,7 +39,7 @@ def fit(fig, fit_type, row=1, col=1, i_data=1, trace_type=None, fit_stats=True, 
         col = [col] if col != "all" else list(range(1, n_col+1))
         i_data = [i_data] if i_data != "all" else list(range(1, n_data+1))
         for r, c, d in itertools.product(row, col, i_data):
-            fit(fig, fit_type, r, c, d, trace_type, fit_stats,  add_trace,
+            fit(fig, fit_type, r, c, d, trace_type, fit_stats, add_trace,
                 datetime_type,
                 fit_kwargs, annotation_kwargs)
         return fig
