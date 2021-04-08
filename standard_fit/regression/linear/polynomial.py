@@ -27,4 +27,5 @@ def fit(x, y, n_poly, error_y=None):
 
 
 def eval(x, params):
-    return get_X(x, len(params) - 1) @ params
+    # return get_X(x, len(params) - 1) @ params
+    return np.poly1d(list(reversed(params)))(x)

@@ -14,14 +14,14 @@ def get_fit_trace(result, x, n_points=1000, log_x=False, flip_xy=False, **kwargs
     fit_type, params, _, _, _, x_range, y_range, *_ = result
 
     if log_x is True:
-        x_margin = 0.1 * (np.log10(x.max()) - np.log10(x.min()))
-        fit_x_range = (max(x_range[0], 10 ** (np.log10(x.min()) - x_margin)),
-                       min(x_range[1], 10 ** (np.log10(x.max()) + x_margin)))
+        x_margin = 0.1 * (np.log10(np.nanmax(x)) - np.log10(np.nanmin(x)))
+        fit_x_range = (max(x_range[0], 10 ** (np.log10(np.nanmin(x)) - x_margin)),
+                       min(x_range[1], 10 ** (np.log10(np.nanmax(x)) + x_margin)))
     else:
-        x_margin = 0.1 * (x.max() - x.min())
+        x_margin = 0.1 * (np.nanmax(x) - np.nanmin(x))
         # y_margin = 0.1 * (y.max() - y.min())
-        fit_x_range = (max(x_range[0], x.min() - x_margin),
-                       min(x_range[1], x.max() + x_margin))
+        fit_x_range = (max(x_range[0], np.nanmin(x) - x_margin),
+                       min(x_range[1], np.nanmax(x) + x_margin))
 
     if log_x:
         fit_x = np.logspace(*np.log10(fit_x_range), n_points)

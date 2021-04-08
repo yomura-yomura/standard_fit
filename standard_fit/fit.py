@@ -153,8 +153,6 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
     if np.count_nonzero(selection) == 0:
         return None
 
-    x = x[selection]
-    y = y[selection]
     if error_x is not None and not callable(error_y):
         if len(x) != len(error_x):
             raise ValueError("mismatch length of x and error_x")
@@ -163,6 +161,8 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
         if len(y) != len(error_y):
             raise ValueError("mismatch length of y and error_y")
         error_y = _validate_data_set(error_y)[selection]
+    x = x[selection]
+    y = y[selection]
 
     if regression.linear.is_defined(fit_type):
         params, err_params, fval, ndf = regression.linear.get_fit_func(fit_type)(x, y, error_y=error_y, **kwargs)

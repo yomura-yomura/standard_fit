@@ -4,11 +4,12 @@ import numpy as np
 
 __all__ = [
     "gaussian", "power_law", "exp", "log",
-    "sin",
+    "sin", "cos",
     "exp10",
     "tanh",
     "approx_landau"
 ]
+
 
 # @numba.njit
 def gaussian(x, A, μ, σ):
@@ -27,8 +28,12 @@ def log(x, p0, p1):
     return p0 * np.log(p1 * x)
 
 
-def sin(x, A, ω, x0):
-    return A * np.sin(ω * (x - x0))
+def sin(x, A, k, x0):
+    return A * np.sin(k * (x - x0))
+
+
+def cos(x, A, k, x0):
+    return A * np.cos(k * (x - x0))
 
 
 def exp10(x, p0, p1):

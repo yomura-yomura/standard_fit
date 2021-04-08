@@ -44,9 +44,9 @@ def log(x, y):
 
 
 def sin(x, y):
-    assert np.unique(x[1:] - x[:-1]).size == 1
-    freq_on_indices = abs(np.fft.fftfreq(y.size)[np.abs(np.fft.fft(y)).argmax()])
-    lambda_on_indices = int(1 / (freq_on_indices))
+    assert np.allclose((x[1:] - x[:-1])[1:], (x[1:] - x[:-1])[:-1])
+    freq_on_indices = abs(np.fft.fftfreq(y.size)[np.abs(np.fft.fft(y))[1:].argmax() + 1])
+    lambda_on_indices = int(1 / freq_on_indices)
     reshaped_y = npu.reshape(y, (-1, lambda_on_indices), drop=True)
 
     phi_on_indices = (

@@ -25,6 +25,7 @@ Invalid data set is passed:
 
 def fit(fig, fit_type, row=1, col=1, i_data=1, trace_type=None, fit_stats=True, add_trace=True,
         datetime_type=None,
+        errors="raise",
         fit_kwargs={}, annotation_kwargs={},
         fit_plot_kwargs={}):
 
@@ -40,7 +41,7 @@ def fit(fig, fit_type, row=1, col=1, i_data=1, trace_type=None, fit_stats=True, 
         i_data = [i_data] if i_data != "all" else list(range(1, n_data+1))
         for r, c, d in itertools.product(row, col, i_data):
             fit(fig, fit_type, r, c, d, trace_type, fit_stats, add_trace,
-                datetime_type,
+                datetime_type, errors,
                 fit_kwargs, annotation_kwargs)
         return fig
 
@@ -73,26 +74,38 @@ def fit(fig, fit_type, row=1, col=1, i_data=1, trace_type=None, fit_stats=True, 
         x, y = y, x
         x_err, y_err = y_err, x_err
 
-    if np.issubdtype(x.dtype, np.datetime64) or np.issubdtype(y.dtype, np.datetime64):
-        if np.issubdtype(x.dtype, np.datetime64):
-            if datetime_type is not None:
-                x = x.astype(f"M8[{datetime_type}]")
-            x_ = (x - x.min()).astype(int)
-        else:
-            x_ = x
+    if np.issubdtype(x.dtype, np.datetime64):
+        if datetime_type is not None:
+            x = x.astype(f"M8[{datetime_type}]")
+        x_ = (x - x.min()).astype(int)
+    else:
+        x_ = x
 
-        if np.issubdtype(y.dtype, np.datetime64):
-            if datetime_type is not None:
-                y = y.astype(f"M8[{datetime_type}]")
-            y_ = (y - y.min()).astype(int)
-            assert y_err is None
-        else:
-            y_ = y
+    if np.issubdtype(y.dtype, np.datetime64):
+        if datetime_type is not None:
+            y = y.astype(f"M8[{datetime_type}]")
+        y_ = (y - y.min()).astype(int)
+        assert y_err is None
+    else:
+        y_ = y
 
+
+    try:
         result = standard_fit.fit(x_, y_, fit_type, error_x=x_err, error_y=y_err, **fit_kwargs)
-        if result is None:
-            return fig
+    except BaseException as e:
+        if errors == "raise":
+            raise e
+        elif errors == "warn":
+            import warnings
+            warnings.warn(str(e))
+            result = None
+        else:
+            raise ValueError
 
+    if result is None:
+        return fig
+
+    if np.issubdtype(x.dtype, np.datetime64) or np.issubdtype(y.dtype, np.datetime64):
         if add_trace:
             fit_trace = util.get_fit_trace(result, x_, log_x=log_x, flip_xy=flip_xy, showlegend=False, **fit_plot_kwargs)
             fit_trace.x = fit_trace.x.astype(int) + x.min()
@@ -106,16 +119,11 @@ def fit(fig, fit_type, row=1, col=1, i_data=1, trace_type=None, fit_stats=True, 
                 f" with time unit {time_unit})"
             ])
     else:
-        result = standard_fit.fit(x, y, fit_type, error_x=x_err, error_y=y_err, **fit_kwargs)
-        if result is None:
-            return fig
-
         if add_trace:
             fig.add_trace(
-                util.get_fit_trace(result, x, log_x=log_x, flip_xy=flip_xy, showlegend=False, **fit_plot_kwargs),
+                util.get_fit_trace(result, x_, log_x=log_x, flip_xy=flip_xy, showlegend=False, **fit_plot_kwargs),
                 row, col
             )
-
         if fit_stats:
             util.add_annotation(fig, result, row, col, **annotation_kwargs)
 
