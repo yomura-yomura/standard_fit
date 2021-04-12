@@ -45,6 +45,17 @@ fit_type = dict(
 fit_dtype = to_dtype(fit_type)
 
 
+def get_fit_dtype(params_info):
+    fit_type_ = fit_type.copy()
+    if npu.is_numeric(np.array(params_info)):
+        fit_type_["params"] = fit_type_["err_params"] = ("f8", params_info)
+    elif npu.is_array(params_info):
+        fit_type_["params"] = fit_type_["err_params"] = [(param_name, "f8") for param_name in params_info]
+    else:
+        raise TypeError(type(params_info))
+    return to_dtype(fit_type_)
+
+
 def to_numpy(obj):
     assert npu.is_array(obj)
     if isinstance(obj, np.ma.MaskedArray):
@@ -161,7 +172,7 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
         error_x = _validate_data_set(error_x)[selection]
     if error_y is not None and not callable(error_y):
         if len(y) != len(error_y):
-            raise ValueError("mismatch length of y and error_y")
+            raise ValueError("mismatch length of y and error_y: {} {}".format(len(y), len(error_y)))
         error_y = _validate_data_set(error_y)[selection]
 
     if regression.linear.is_defined(fit_type):

@@ -157,6 +157,7 @@ def add_annotation(
         showarrow=False,
         text="<br>".join(text_lines)
     )
+    return fig
 
 
 # def _estimate_range(x: list):

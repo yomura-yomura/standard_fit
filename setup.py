@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='standard_fit',
-    version='3.2',
+    version='3.3',
     description='',
     author='yomura',
     author_email='yomura@hoge.jp',
