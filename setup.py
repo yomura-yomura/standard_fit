@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='standard_fit',
-    version='3.2',
+    version='4.0',
     description='',
     author='yomura',
     author_email='yomura@hoge.jp',
@@ -14,6 +14,7 @@ setup(
         "jaxlib",
         "scipy",
         "plotly_utility @ git+https://github.com/yomura-yomura/plotly_utility",
-        "numpy_utility @ git+https://github.com/yomura-yomura/numpy_utility"
+        "numpy_utility @ git+https://github.com/yomura-yomura/numpy_utility",
+        "parse"
     ]
 )

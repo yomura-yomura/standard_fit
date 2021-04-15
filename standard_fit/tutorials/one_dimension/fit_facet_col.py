@@ -18,5 +18,5 @@ if __name__ == "__main__":
         row="all", col="all",
         # annotation_kwargs=dict(inside=False)
     )
+    fig.show()
 
-    plot(fig)

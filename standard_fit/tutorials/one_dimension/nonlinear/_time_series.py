@@ -1,3 +1,7 @@
+"""
+TODO: make this tutorial
+"""
+
 # #!/usr/bin/env python3
 # import numpy as np
 # import standard_fit.plotly.express as sfpx

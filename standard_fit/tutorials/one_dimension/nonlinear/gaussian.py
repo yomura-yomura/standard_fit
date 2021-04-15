@@ -13,5 +13,5 @@ if __name__ == "__main__":
     x[np.random.choice(x.size, size=n_inf // 2, replace=False)] = np.inf
     x[np.random.choice(x.size, size=n_inf // 2, replace=False)] = -np.inf
 
-    fig = sfpx.histogram(x, fit_type="gaussian", fit_stats=True, marginal="box", fit_kwargs=dict(print_result=False))
+    fig = sfpx.histogram(x=x, fit_type="gaussian", fit_stats=True, marginal="box")
     fig.show()

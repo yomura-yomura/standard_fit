@@ -10,44 +10,61 @@ import tkinter.font
 __all__ = ["get_fit_trace", "add_annotation"]
 
 
-def get_fit_trace(result, x, n_points=1000, log_x=False, flip_xy=False, **kwargs):
+def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlegend=False):
     fit_type, params, _, _, _, x_range, y_range, *_ = result
 
-    if log_x is True:
-        x_margin = 0.1 * (np.log10(np.nanmax(x)) - np.log10(np.nanmin(x)))
-        fit_x_range = (max(x_range[0], 10 ** (np.log10(np.nanmin(x)) - x_margin)),
-                       min(x_range[1], 10 ** (np.log10(np.nanmax(x)) + x_margin)))
-    else:
-        x_margin = 0.1 * (np.nanmax(x) - np.nanmin(x))
-        # y_margin = 0.1 * (y.max() - y.min())
-        fit_x_range = (max(x_range[0], np.nanmin(x) - x_margin),
-                       min(x_range[1], np.nanmax(x) + x_margin))
+    x = np.asarray(x)
+    is_multivariate = x.ndim == 2
+    
+    if is_multivariate:
+        if n_points is None:
+            n_points = 10_000
 
-    if log_x:
-        fit_x = np.logspace(*np.log10(fit_x_range), n_points)
+        assert log_x is False
+        n_variables = x.shape[1]
+        if 2 < n_variables:
+            raise NotImplementedError("2 < n_variables")
+
+        fit_x = np.stack([
+            e.flatten()
+            for e in np.meshgrid(np.linspace(x[:, 0].min(), x[:, 0].max(), int(np.sqrt(n_points))),
+                                 np.linspace(x[:, 1].min(), x[:, 1].max(), int(np.sqrt(n_points))))
+        ], axis=-1)
     else:
-        fit_x = np.linspace(*fit_x_range, n_points)
+        if n_points is None:
+            n_points = 1_000
+
+        if log_x is True:
+            x_margin = 0.1 * (np.log10(np.max(x)) - np.log10(np.min(x)))
+            fit_x_range = (max(x_range[0], 10 ** (np.log10(np.min(x)) - x_margin)),
+                           min(x_range[1], 10 ** (np.log10(np.max(x)) + x_margin)))
+            fit_x = np.logspace(*np.log10(fit_x_range), n_points)
+        else:
+            x_margin = 0.1 * (np.max(x) - np.min(x))
+            fit_x_range = (max(x_range[0], np.min(x) - x_margin),
+                           min(x_range[1], np.max(x) + x_margin))
+            fit_x = np.linspace(*fit_x_range, n_points)
 
     fit_y = regression.eval(fit_type, fit_x, result[1])
-    # if regression.linear_regression.is_defined(fit_type):
-    # else:
-    #     fit_y = np.array([nonlinear_regression.get_func(fit_type)(x, *result[1]) for x in fit_x])
-
     matched_on_y = (y_range[0] <= fit_y) & (fit_y <= y_range[1])
     fit_x[~matched_on_y] = fit_y[~matched_on_y] = np.nan
 
     plot_kwargs = dict(
         name=f"{fit_type} fit",
-        line=dict(
-            color="red"
-        )
+        showlegend=showlegend
     )
-    plot_kwargs.update(kwargs)
 
-    if flip_xy:
-        fit_x, fit_y = fit_y, fit_x
+    if is_multivariate:
+        assert flip_xy is False
 
-    return go.Scattergl(mode="lines", x=fit_x, y=fit_y, **plot_kwargs)
+        plot_kwargs.update(color="#EF553B", opacity=0.3)
+        return go.Mesh3d(x=fit_x[:, 0], y=fit_x[:, 1], z=fit_y, **plot_kwargs)
+    else:
+        if flip_xy:
+            fit_x, fit_y = fit_y, fit_x
+
+        plot_kwargs.update(line=dict(color="red"))
+        return go.Scattergl(mode="lines", x=fit_x, y=fit_y, **plot_kwargs)
 
 
 def add_annotation(
@@ -60,11 +77,7 @@ def add_annotation(
         valid_digits=4
 ):
     assert i_data == 1  # not implemented yet
-    fit_type, params, err_params, chi_squared, ndf, *_ = fit_result
-
-    standard_height = 1000
-    standard_width = 1600
-    aspect_ratio = standard_height / standard_width  # 16:10
+    fit_type, params, err_params, chi_squared, ndf, *_, is_multivariate = fit_result
 
     tk.Frame().destroy()
     font = tk.font.Font(family="Arial", size=-font_size)
@@ -96,13 +109,12 @@ def add_annotation(
         f"χ²/ndf = {chi_squared:.{valid_digits}g}/{ndf} ",
         *[
             f"{n} = {p} ± {ep} " for n, p, ep in zip(
-                as_str(regression.get_parameter_names(fit_type)),
+                as_str(regression.get_parameter_names(fit_type, is_multivariate)),
                 as_str(str_p),
                 as_str(str_ep, align="left")
             )
-          ]
+        ]
     ]
-
 
     if not fig._has_subplots() or (row is None and col is None):
         subplot = fig.layout  # not subplot in this case
@@ -110,11 +122,21 @@ def add_annotation(
         x1 = y1 = 1.
     else:
         subplot = fig.get_subplot(row, col)
-        x0, x1 = subplot.xaxis.domain
-        y0, y1 = subplot.yaxis.domain
+        if is_multivariate:
+            x0, x1 = subplot.domain["x"]
+            y0, y1 = subplot.domain["y"]
+        else:
+            x0, x1 = subplot.xaxis.domain
+            y0, y1 = subplot.yaxis.domain
 
+    # if fig.layout.width is None:
+    #     fig.layout.width = standard_width
+    # if fig.layout.height is None:
+    #     fig.layout.height = fig.layout.width * aspect_ratio
+    aspect_ratio = 10 / 16
     if fig.layout.width is None:
-        fig.layout.width = standard_width
+        root = tk.Tk()
+        fig.layout.width = root.winfo_screenwidth() * 0.9
     if fig.layout.height is None:
         fig.layout.height = fig.layout.width * aspect_ratio
 
@@ -157,6 +179,7 @@ def add_annotation(
         showarrow=False,
         text="<br>".join(text_lines)
     )
+    return fig
 
 
 # def _estimate_range(x: list):

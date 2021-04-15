@@ -37,7 +37,8 @@ def spectrum_linear(x, a, x0, A, bp, s2):
     return functions.tanh(x, 0.5, a, x0, 0.5) * broken_pol1(x, A, bp, s2)
 
 
-def _get_func(fit_type: str):
-    assert fit_type in __all__
+def get_func(fit_type: str):
+    if fit_type not in __all__:
+        raise ValueError(f"{fit_type} not defined.")
     return globals()[fit_type]
 
