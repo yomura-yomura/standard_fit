@@ -2,7 +2,6 @@
 import numpy as np
 import numpy_utility as npu
 import standard_fit.plotly.express as sfpx
-import plotly_utility.express as pux
 import plotly.graph_objs as go
 import plotly
 plotly.io.renderers.default = "browser"

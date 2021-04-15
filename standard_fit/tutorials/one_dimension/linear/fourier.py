@@ -23,5 +23,5 @@ if __name__ == "__main__":
     t = fr["params"] / fr["err_params"] ** 2
     p = scipy.stats.t.sf(t, fr["ndf"] - 1)
     indices = np.where(p == 0)[0]
-    print(np.take(sf.regression.get_parameter_names("fourier30"), indices))
+    print(np.take(sf.regression.get_parameter_names("fourier30", is_multivariate=False), indices))
     print(np.take(fr["params"], indices))

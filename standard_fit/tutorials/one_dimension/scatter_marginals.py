@@ -10,7 +10,7 @@ if __name__ == "__main__":
     y = np.random.normal(x, size=len(x))
 
     sfpx.scatter(
-        x, y, fit_type="pol1",
+        x=x, y=y, fit_type="pol1",
         fit_marginal_x="gaussian", fit_marginal_y="gaussian",
         annotation_kwargs=dict(use_font_size=True, font_size=20)
     ).show()

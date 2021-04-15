@@ -1,6 +1,14 @@
 import numpy as np
-from .regression import nonlinear
+from . import regression
+# from .regression import nonlinear
 import scipy.integrate
+import warnings
+
+try:
+    import IPython.display
+    display = IPython.display.display
+except ImportError:
+    display = print
 
 
 def integrate(func, params, min_x, max_x):
@@ -8,7 +16,10 @@ def integrate(func, params, min_x, max_x):
 
 
 def get_normalized_function(fit_type, min_x, max_x):
-    func = nonlinear.get_func(fit_type)
+    is_multivariate = False
+    nonlinear_module = regression.multi_dimension.nonlinear if is_multivariate else regression.one_dimension.nonlinear
+
+    func = nonlinear_module.get_func(fit_type)
 
     def norm_func(x, *params):
         return func(x, *params) / (integrate(func, params, min_x, max_x)[0])
@@ -16,7 +27,9 @@ def get_normalized_function(fit_type, min_x, max_x):
     return norm_func
 
 
-def fit(x, fit_type, x_range=()):
+def fit(x, fit_type, x_range=(), print_result=True):
+    is_multivariate = False
+
     if len(x_range) == 0:
         x_range = (x.min(), x.max())
     elif len(x_range) == 2:
@@ -29,16 +42,14 @@ def fit(x, fit_type, x_range=()):
     def fcn(params):
         p = norm_func(x, *params)
         lnL = np.sum(np.log(p[p != 0]))
-        # print(lnL)
         return -lnL
 
     if fit_type == "gaussian":
         x0 = (1, 0, 1)
         bounds = [(1, 1), None, None]
     else:
-        import warnings
         warnings.warn(f"Unspecified fit_type = {fit_type}")
-        x0 = [1] * len(nonlinear.get_parameter_names(fit_type))
+        x0 = [1] * len(regression.get_parameter_names(fit_type, is_multivariate))
         bounds = None
 
     import iminuit
@@ -55,4 +66,12 @@ def fit(x, fit_type, x_range=()):
     #     params[0] /= norm_func(params[1], *params)
 
     y_range = (-np.inf, np.inf)  # Not implemented yet
-    return fit_type, tuple(params), tuple(m.errors), m.fval/2, len(x) - m.nfit, x_range, y_range
+
+    if print_result:
+        display(m.fmin)
+        display(m.params)
+
+    return (
+        fit_type, tuple(params), tuple(m.errors), m.fval/2, len(x) - m.nfit,
+        x_range, y_range, is_multivariate
+    )

@@ -14,4 +14,4 @@ if __name__ == "__main__":
     x = np.linspace(0, 2*np.pi, 100)
     y = 20 * np.sin(x) + 0.5 * np.cos(x/2)
 
-    sfpx.scatter(x, y, "custom func").show()
+    sfpx.scatter(x=x, y=y, fit_type="custom func").show()

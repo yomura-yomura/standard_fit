@@ -3,11 +3,14 @@ import re
 import functools
 
 
+__all__ = ["is_defined", "get_func", "eval", "get_parameter_names"]
+
+
 def is_defined(fit_type):
     return (bool(re.match(r"pol\d+", fit_type)) or bool(re.match(r"fourier\d+", fit_type)))
 
 
-def get_fit_func(fit_type):
+def get_func(fit_type):
     if re.match(r"pol\d+", fit_type):
         return functools.partial(polynomial.fit, n_poly=int(fit_type[3:]))
     elif re.match(r"fourier\d+", fit_type):

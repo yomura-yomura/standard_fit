@@ -1,19 +1,23 @@
-from . import linear, nonlinear
+from . import one_dimension, multi_dimension
+import numpy as np
 
 
 def eval(fit_type, x, params):
-    if linear.is_defined(fit_type):
-        return linear.eval(fit_type, x, params)
-    elif nonlinear.is_defined(fit_type):
-        return nonlinear.get_func(fit_type)(x, *params)
+    x = np.asarray(x) if not isinstance(x, np.ma.MaskedArray) else x
+
+    if not (1 <= x.ndim <= 2):
+        raise ValueError("1 <= x.ndim <= 2")
+
+    is_multivariate = x.ndim == 2
+
+    if is_multivariate:
+        return multi_dimension.eval(fit_type, x, params)
     else:
-        raise ValueError(f"{fit_type} not defined.")
+        return one_dimension.eval(fit_type, x, params)
 
 
-def get_parameter_names(fit_type):
-    if linear.is_defined(fit_type):
-        return linear.get_parameter_names(fit_type)
-    elif nonlinear.is_defined(fit_type):
-        return nonlinear.get_parameter_names(fit_type)
+def get_parameter_names(fit_type, is_multivariate):
+    if is_multivariate:
+        return multi_dimension.get_parameter_names(fit_type)
     else:
-        raise ValueError(f"{fit_type} not defined.")
+        return one_dimension.get_parameter_names(fit_type)

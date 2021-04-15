@@ -1,5 +1,5 @@
 # Maybe will be removed
-from .fit import *
+from .standard_fit import *
 from . import regression
 import inspect
 
@@ -14,11 +14,16 @@ def eval(x, result):
     return regression.eval(fit_type, np.array(x), *params)
 
 
-def add_function(fit_type: str, func, initial_guess=None, bounds=None, overwrite=False):
+def add_function(fit_type: str, func, initial_guess=None, bounds=None, 
+                 is_multivariate=False,
+                 overwrite=False):
     assert bounds is None
 
     fit_type = fit_type.replace(" ", "_")
-    if overwrite is False and regression.nonlinear.is_defined(fit_type):
+    
+    nonlinear_module = regression.multi_dimension.nonlinear if is_multivariate else regression.one_dimension.nonlinear
+    
+    if overwrite is False and nonlinear_module.is_defined(fit_type):
         raise ValueError(f"'{fit_type}' has already been defined")
 
     if not callable(func):
@@ -42,7 +47,7 @@ def add_function(fit_type: str, func, initial_guess=None, bounds=None, overwrite
         else:
             raise NotImplementedError("")
 
-    setattr(regression.nonlinear.custom.initial_guess, fit_type, initial_guess_func)
-    setattr(regression.nonlinear.custom.functions, fit_type, func)
-    regression.nonlinear.custom.__all__.append(fit_type)
+    setattr(nonlinear_module.custom.initial_guess, fit_type, initial_guess_func)
+    setattr(nonlinear_module.custom.functions, fit_type, func)
+    nonlinear_module.custom.functions.__all__.append(fit_type)
 
