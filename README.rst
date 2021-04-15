@@ -68,7 +68,7 @@ Gaussian x ~ N(5, 2)
     import standard_fit.plotly.express as sfpx
 
     x = np.random.normal(5, 2, size=1_000_000)
-    fig = sfpx.histogram(x, fit_type="gaussian")
+    fig = sfpx.histogram(x=x, fit_type="gaussian")
     fig.show()
 
 
@@ -84,7 +84,7 @@ Gaussian x ~ N(5, 2) (Unbinned Maximum Likelihood fit)
     import standard_fit.plotly.express as sfpx
 
     x = np.random.normal(5, 2, size=1_000)
-    fig = sfpx.histogram(x, fit_type="gaussian", umlf=True, histnorm="probability density")
+    fig = sfpx.histogram(x=x, fit_type="gaussian", umlf=True, histnorm="probability density")
     fig.show()
 
 
