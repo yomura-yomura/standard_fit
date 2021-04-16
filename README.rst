@@ -32,7 +32,7 @@ y = -2x + 1
     sfpx.fit(fig, "pol1")
     fig.show()
 
-.. image:: ./pol1.png
+.. image:: sample_images/./pol1.png
 
 y = 2sin(x) + 5cos(2x) + 9cos(5x)
 =================================
@@ -57,8 +57,8 @@ y = 2sin(x) + 5cos(2x) + 9cos(5x)
 
 .. list-table::
 
-    * - .. image:: ./fs.png
-      - .. image:: ./fs_lasso.png
+    * - .. image:: sample_images/./fs.png
+      - .. image:: sample_images/./fs_lasso.png
 
 Note that error values cannot be calculated in linear regression with LASSO regularization.
 
@@ -79,7 +79,7 @@ Gaussian x ~ N(5, 2)
     fig.show()
 
 
-.. image:: ./gaus.png
+.. image:: sample_images/./gaus.png
 
 
 Gaussian x ~ N(5, 2) (Unbinned Maximum Likelihood fit)
@@ -95,7 +95,7 @@ Gaussian x ~ N(5, 2) (Unbinned Maximum Likelihood fit)
     fig.show()
 
 
-.. image:: gaus_umlf.png
+.. image:: sample_images/gaus_umlf.png
 
 
 multi dimension
@@ -131,4 +131,4 @@ Nonlinear Regression
     ).show()
 
 
-.. image:: gaus2d.png
+.. image:: sample_images/gaus2d.png
