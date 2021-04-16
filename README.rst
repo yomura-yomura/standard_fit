@@ -1,16 +1,23 @@
 .. role:: raw-math(raw)
     :format: latex html
 
+************
 standard_fit
-============
+************
 
 （適切なプロジェクト名に変更する予定）
 
+.. contents:: Outline
+   :depth: ３
+　
+one dimension
+#############
+
 Linear Regression
-~~~~~~~~~~~~~~~~~
+*****************
 
 y = -2x + 1
-^^^^^^^^^^^^^^
+===========
 
 .. code:: python
 
@@ -28,7 +35,7 @@ y = -2x + 1
 .. image:: ./pol1.png
 
 y = 2sin(x) + 5cos(2x) + 9cos(5x)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+=================================
 
 .. code:: python
 
@@ -57,10 +64,10 @@ Note that error values cannot be calculated in linear regression with LASSO regu
 
 
 Nonlinear Regression
-~~~~~~~~~~~~~~~~~~~~
+********************
 
 Gaussian x ~ N(5, 2)
-^^^^^^^^^^^^^^^^^^^^
+====================
 
 .. code:: python
 
@@ -76,7 +83,7 @@ Gaussian x ~ N(5, 2)
 
 
 Gaussian x ~ N(5, 2) (Unbinned Maximum Likelihood fit)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+======================================================
 
 .. code:: python
 
@@ -89,3 +96,39 @@ Gaussian x ~ N(5, 2) (Unbinned Maximum Likelihood fit)
 
 
 .. image:: gaus_umlf.png
+
+
+multi dimension
+###############
+
+Nonlinear Regression
+********************
+
+2D Gaussian x ~ N([10, -10], [[10, 5], [5, 10]])
+================================================
+
+.. code:: python
+
+    import numpy as np
+    import standard_fit.plotly.express as sfpx
+    import scipy.stats
+
+    xv, yv = np.meshgrid(np.linspace(0, 20, 30), np.linspace(-20, 0, 30))
+    x = np.stack((xv.flatten(), yv.flatten()), axis=-1)
+
+    mean = [10, -10]
+    cov = [
+        [10, 5],
+        [5, 10]
+    ]
+    error_y = [0.001] * len(x)
+
+    y = scipy.stats.multivariate_normal.pdf(x, mean, cov) + np.random.normal(0, error_y)
+
+    fig = sfpx.scatter_3d(
+        x=x[:, 0], y=x[:, 1], z=y, error_z=error_y, fit_type="gaussian2d",
+        annotation_kwargs=dict(display_matrix=True)
+    ).show()
+
+
+.. image:: gaus2d.png
