@@ -1,0 +1,5 @@
+.idea/
+standard_fit/__pycache__/
+standard_fit/plotly/__pycache__/
+standard_fit/plotly/express/__pycache__/
+standard_fit/tutorials/multi_dimension/newtd.txt

@@ -52,7 +52,8 @@ y = 2sin(x) + 5cos(2x) + 9cos(5x)
     fig.show()
 
     fig = px.scatter(title="Fourier-series fitting with LASSO regularization (λ=0.1)", x=x, y=y, error_y=y_sigma)
-    sfpx.fit(fig, "fourier5", annotation_kwargs=dict(inside=False), fit_kwargs=dict(lasso_lambda=0.1))
+    sfpx.fit(fig, "fourier5", annotation_kwargs=dict(inside=False),
+             fit_kwargs=dict(linear_regression_kwargs=dict(lasso_lambda=0.1)))
     fig.show()
 
 .. list-table::

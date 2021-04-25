@@ -16,10 +16,21 @@ def to_dtype(type: dict):
 
 status_type = dict(
     is_valid=bool,
-    has_valid_parameters=bool, has_reached_call_limit=bool, is_above_max_edm=bool,
-    edm="f8",
-    # ncalls='i4'
-    nfcn="i4"
+    has_accurate_covar=bool,
+    has_covariance=bool,
+    has_posdef_covar=bool,
+    has_valid_parameters=bool,
+
+    hesse_failed=bool,
+    has_made_posdef_covar=bool,
+    has_parameters_at_limit=bool,
+    has_reached_call_limit=bool,
+    is_above_max_edm=bool,
+
+    edm="f4",
+    edm_goal="f4",
+
+    nfcn="i4"  # the number of function calls so far.
 )
 
 status_dtype = to_dtype(status_type)
@@ -35,7 +46,6 @@ fit_result_type = dict(
     err_params="O",
     fcn="f8",
     ndf="i8",
-    # x_range=("f8", 2),
     x_range="O",
     y_range=("f8", 2),
     status=status_dtype,
@@ -45,7 +55,7 @@ fit_result_type = dict(
 fit_result_dtype = to_dtype(fit_result_type)
 
 
-def get_fit_result_dtype(params_info):
+def get_fit_result_dtype(params_info, ndim=None):
     fit_result_type_ = fit_result_type.copy()
     if npu.is_numeric(np.array(params_info)):
         fit_result_type_["params"] = fit_result_type_["err_params"] = ("f8", params_info)
@@ -53,6 +63,13 @@ def get_fit_result_dtype(params_info):
         fit_result_type_["params"] = fit_result_type_["err_params"] = [(param_name, "f8") for param_name in params_info]
     else:
         raise TypeError(type(params_info))
+
+    if ndim is not None:
+        if ndim == 1:
+            fit_result_type_["x_range"] = ("f8", (2,))
+        else:
+            fit_result_type_["x_range"] = ("f8", (ndim, 2))
+
     return to_dtype(fit_result_type_)
 
 
@@ -237,18 +254,19 @@ def _validate_range(x_range, x: np.ndarray):
 
 def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_parameter=None,
         initial_guess=None, bounds=None, x_range=None, y_range=None,
-        print_result=True, print_level=None, **kwargs):
+        print_result=True, print_level=None, linear_regression_kwargs=None):
+
     if len(x) != len(y):
         raise ValueError("mismatch length of x and y")
 
     fit_type = fit_type.replace(" ", "_")
 
-    x, y, error_x, error_y, is_multivariate = _validate_data_set(x, y, error_x, error_y)
-
     if callable(x_range):
         x_range = x_range(x, y)
     if callable(y_range):
         y_range = y_range(x, y)
+
+    x, y, error_x, error_y, is_multivariate = _validate_data_set(x, y, error_x, error_y)
 
     x_range = _validate_range(x_range, x)
     y_range = _validate_range(y_range, y)
@@ -283,7 +301,12 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
             fit_func = regression.multi_dimension.nonlinear.get_func(fit_type)
     else:
         if regression.one_dimension.linear.is_defined(fit_type):
-            params, err_params, fval, ndf = regression.one_dimension.linear.get_func(fit_type)(x, y, error_y=error_y, **kwargs)
+            func = regression.one_dimension.linear.get_func(fit_type)
+            if linear_regression_kwargs is None:
+                params, err_params, fval, ndf = func(x, y, error_y=error_y)
+            else:
+                params, err_params, fval, ndf = func(x, y, error_y=error_y, **linear_regression_kwargs)
+
             if print_result:
                 print(f"fval/ndf = {fval:.4g}/{ndf}")
                 print(f"params = {params}")
