@@ -33,6 +33,6 @@ def get_parameter_names(fit_type):
         return [f"p{i}" for i in range(int(fit_type[3:]) + 1)]
     elif re.match(r"fourier\d+", fit_type):
         n_terms = int(fit_type[7:]) + 1
-        return ["p0"] + [f"p_sin{i}" for i in range(1, n_terms)] + [f"p_cos{i}" for i in range(1, n_terms)]
+        return ["p0"] + [f"p_sin_{i}" for i in range(1, n_terms)] + [f"p_cos_{i}" for i in range(1, n_terms)]
     else:
         raise ValueError(f"{fit_type} not defined.")

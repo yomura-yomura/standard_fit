@@ -56,3 +56,25 @@ def get_func(fit_type: str):
     return globals()[fit_type]
 
 
+__all__ += ["log_gaussian", "log_gaussian2"]
+
+
+def log_gaussian(x, A, μ, σ):
+    """
+    log-normal distribution:
+        μ: mean on the logarithm scale
+        σ: standard deviation on the logarithm scale
+    """
+    return A / (np.sqrt(2 * np.pi) * σ * x) * np.exp(-0.5 * ((np.log(x) - μ) / σ) ** 2)
+
+
+def log_gaussian2(x, A, μ, σ):
+    """
+    Alternative parameterization of log-normal distribution:
+        μ: mean on the natural scale
+        σ: standard deviation on the natural scale
+    """
+    term = 1 + (σ / μ) ** 2
+    log_term = np.log(term)
+    return A / (x * np.sqrt(2 * np.pi * log_term)) * np.exp(-0.5 * np.log(x / (μ / np.sqrt(term))) ** 2 / log_term)
+

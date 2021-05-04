@@ -7,13 +7,12 @@ __all__ = ["estimate_initial_guess"]
 
 
 def gaussian(x, y):
-    a = np.max(y)
-    # mean = np.average(x, weights=y)
     mean = x[np.argmax(y)]
     try:
-        std = np.sqrt(np.average((x - mean) ** 2, weights=y))
+        std = np.average(np.abs(x - mean), weights=y)
     except ZeroDivisionError:
         std = 0
+    a = np.max(y) * np.sqrt(2 * np.pi) * std
     return a, mean, std
 
 
@@ -89,3 +88,13 @@ def estimate_initial_guess(fit_type: str, x, y):
         return globals()[fit_type](x, y)
     else:
         raise NotImplementedError(fit_type)
+
+
+def log_gaussian(x, y):
+    return gaussian(np.log10(x), y)
+
+
+def log_gaussian2(x, y):
+    A, mu, sigma = gaussian(np.log10(x), y)
+    sigma2 = sigma ** 2
+    return A, np.exp(mu + sigma2 / 2), np.sqrt(np.exp(2 * mu + sigma2) * (np.exp(sigma2) - 1))

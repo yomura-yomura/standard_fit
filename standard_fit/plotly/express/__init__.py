@@ -29,9 +29,11 @@ def fit(fig, fit_type, row=1, col=1, i_data=1, trace_type=None, fit_stats=True, 
         for r, c, d in itertools.product(row, col, i_data):
             if "print_result" not in fit_kwargs or fit_kwargs["print_result"] == True:
                 print(f"\n* row={r}, col={c}, data={d}")
-            fit(fig, fit_type, r, c, d, trace_type, fit_stats, add_trace,
+            fit(
+                fig, fit_type, r, c, d, trace_type, fit_stats, add_trace,
                 datetime_type,
-                fit_kwargs, annotation_kwargs)
+                fit_kwargs, annotation_kwargs
+            )
         return fig
 
     traces = plotly_utility.get_traces_at(fig, row, col)
@@ -158,7 +160,8 @@ def scatter(df=None, x=None, y=None, fit_type=None, fit_stats=True, fit_kwargs={
     return fig
 
 
-def histogram(df=None, x=None, fit_type=None, fit_stats=True, umlf=False, fit_kwargs={}, **kwargs):
+def histogram(df=None, x=None, fit_type=None, fit_stats=True, umlf=False, fit_kwargs={}, annotation_kwargs={},
+              **kwargs):
     fig = pux.histogram(df, x=x, **kwargs)
 
     if fit_type is not None:
@@ -170,7 +173,7 @@ def histogram(df=None, x=None, fit_type=None, fit_stats=True, umlf=False, fit_kw
         fig._fit_result = result
         fig.add_trace(util.get_fit_trace(result, fig.data[0].x))
         if fit_stats:
-            util.add_annotation(fig, result)
+            util.add_annotation(fig, result, **annotation_kwargs)
     return fig
 
 

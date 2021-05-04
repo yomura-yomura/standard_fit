@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import numpy_utility as npu
 from . import regression
@@ -54,6 +56,8 @@ fit_result_type = dict(
 
 fit_result_dtype = to_dtype(fit_result_type)
 
+# _empty_result = np.zeros(1, fit_result_dtype)[0]
+
 
 def get_fit_result_dtype(params_info, ndim=None):
     fit_result_type_ = fit_result_type.copy()
@@ -79,7 +83,7 @@ def to_numpy(obj):
         if obj.mask.dtype.names is None:
             mask = obj.mask
         else:
-            mask = npu.any_along_column(obj.mask)
+            mask = npu.any(obj.mask, axis="column")
         obj = obj.data
     else:
         obj = np.array(obj)
@@ -98,13 +102,20 @@ def to_numpy(obj):
     obj = obj.reshape((-1, len(base_fit_result_type)))
 
     fit_types = obj[..., 0]
+    is_multivariate = obj[..., -1]
 
     base_fit_result_type["fit_type"] = "U{}".format(max([len(ft) for ft in fit_types]))
 
     if len(np.unique(fit_types)) == 1:
-        n_params = len(regression.get_parameter_names(fit_types[0]))
+        if np.unique(is_multivariate).size > 1:
+            raise NotImplementedError
+        else:
+            is_multivariate = is_multivariate[0]
+        n_params = len(regression.get_parameter_names(fit_types[0], is_multivariate))
         base_fit_result_type["params"] = ("f8", (n_params,))
         base_fit_result_type["err_params"] = ("f8", (n_params,))
+        assert is_multivariate == False
+        base_fit_result_type["x_range"] = ("f8", 2)
 
     obj = np.fromiter(map(tuple, obj), list(base_fit_result_type.items())).reshape(original_shape)
     if mask is None:
@@ -254,7 +265,9 @@ def _validate_range(x_range, x: np.ndarray):
 
 def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_parameter=None,
         initial_guess=None, bounds=None, x_range=None, y_range=None,
-        print_result=True, print_level=None, linear_regression_kwargs=None):
+        print_result=True, print_level=None, linear_regression_kwargs=None,
+        # errors="warn"
+        ):
 
     if len(x) != len(y):
         raise ValueError("mismatch length of x and y")
@@ -351,6 +364,7 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
 
     def migrad(use_simplex=True, strategy=2):
         m = iminuit.Minuit(fcn, initial_guess)
+        # m.throw_nan = True
 
         if print_level is not None:
             assert 0 <= print_level <= 3
@@ -376,7 +390,16 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
 
         return m
 
+    # if errors == "raise":
     m = migrad()
+    # elif errors == "warn":
+    #     try:
+    #         m = migrad()
+    #     except RuntimeError as e:
+    #         with warnings.catch_warnings():
+    #             warnings.simplefilter("always")
+    #             warnings.warn(str(e))
+    #         return _empty_result
 
     if print_result:
         display(m.fmin)

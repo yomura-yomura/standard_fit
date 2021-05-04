@@ -1,24 +1,88 @@
 import numpy as np
 import plotly.graph_objs as go
-from standard_fit import regression
-from uncertainties import ufloat
-import warnings
-import tkinter as tk
-import tkinter.font
+from .. import regression
+import io
+import PIL.Image
+import PIL.ImageOps
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import itertools
 
 
-root = tk.Tk()
-root.withdraw()
+mpl.rcParams['text.latex.preamble'] = r"".join([
+    r"\usepackage{{amsmath}}"
+])
+
+
+class ufloat:
+    def __init__(self, nominal_value, std_dev, significant_digits=4, use_plus_zero_instead_of_minus=True):
+        if std_dev < 0:
+            raise ValueError("The standard deviation cannot be negative")
+
+        self.nominal_value = nominal_value
+        self.std_dev = std_dev
+        self.significant_digits = significant_digits
+
+        if use_plus_zero_instead_of_minus:
+            if self.nominal_value == 0:
+                self.nominal_value = 0
+            if self.std_dev == 0:
+                self.std_dev = 0
+
+        if np.isfinite(self.nominal_value) and np.isfinite(self.std_dev):
+            target = max(abs(self.nominal_value), self.std_dev)
+        elif np.isfinite(self.nominal_value) and not np.isfinite(self.std_dev):
+            target = abs(self.nominal_value)
+        elif not np.isfinite(self.nominal_value) and np.isfinite(self.std_dev):
+            target = self.std_dev
+        else:
+            target = 1
+
+        if target == 0:
+            target = 1
+
+        self.factor = int(np.floor(np.log10(target)))
+
+        if abs(self.factor) >= significant_digits:
+            self.nominal_value /= 10 ** self.factor
+            self.std_dev /= 10 ** self.factor
+
+    def to_latex(self):
+        if self.factor >= 0:
+            valid_decimals = self.significant_digits - abs(self.factor % self.significant_digits) - 1
+        else:
+            valid_decimals = self.significant_digits - abs(self.factor % self.significant_digits) + 1
+        s = rf"{self.nominal_value:.{valid_decimals}f} \pm {self.std_dev:.{valid_decimals}f}"
+
+        if self.factor < self.significant_digits:
+            return s
+        else:
+            return rf"({s}) \times 10^{{{self.factor}}}"
+
+    def __str__(self):
+        if self.factor >= 0:
+            valid_decimals = self.significant_digits - abs(self.factor % self.significant_digits) - 1
+        else:
+            valid_decimals = self.significant_digits - abs(self.factor % self.significant_digits) + 1
+        s = f"{self.nominal_value:.{valid_decimals}f} +/- {self.std_dev:.{valid_decimals}f}"
+
+        if self.factor < self.significant_digits:
+            return s
+        else:
+            return f"({s})e{self.factor}"
+
+    def __repr__(self):
+        return f"ufloat({self.__str__()})"
 
 
 __all__ = ["get_fit_trace", "add_annotation"]
 
 
 def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlegend=False):
-    fit_type, params, _, _, _, x_range, y_range, *_ = result
+    fit_type, params, _, _, _, x_range, y_range, *_, is_multivariate = result
 
     x = np.asarray(x)
-    is_multivariate = x.ndim == 2
+    # is_multivariate = x.ndim == 2
     
     if is_multivariate:
         if n_points is None:
@@ -49,7 +113,7 @@ def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlege
                            min(x_range[1], np.max(x) + x_margin))
             fit_x = np.linspace(*fit_x_range, n_points)
 
-    fit_y = regression.eval(fit_type, fit_x, result[1])
+    fit_y = regression.eval(fit_x, result)
     matched_on_y = (y_range[0] <= fit_y) & (fit_y <= y_range[1])
     fit_x[~matched_on_y] = fit_y[~matched_on_y] = np.nan
 
@@ -83,10 +147,11 @@ def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlege
 def add_annotation(
         fig, fit_result, row=1, col=1, i_data=1,
         inside=True,
-        use_font_size=False,
-        font_size=40,
-        annotation_family="Arial",
-        occupied_ratio=0.25,
+        dpi=150,
+        # use_font_size=False,
+        # font_size=40,
+        # annotation_family="Arial",
+        max_occupied_ratio=0.25,
         valid_digits=4,
         display_matrix=False
 ):
@@ -106,41 +171,33 @@ def add_annotation(
             x0, x1 = subplot.xaxis.domain
             y0, y1 = subplot.yaxis.domain
 
-    aspect_ratio = root.winfo_screenheight() / root.winfo_screenwidth()
-    if fig.layout.width is None:
-        fig.layout.width = root.winfo_screenwidth() * 0.85
-    if fig.layout.height is None:
-        fig.layout.height = fig.layout.width * aspect_ratio
-
-    font = tk.font.Font(family="Arial", size=-font_size)
-
-    ws = " "
-    ws_width = font.measure(ws * 100) / 100
-
-    def as_str(a, formats=None, align="right"):
-        if formats is None:
-            a = [f"{s}" for s in a]
-        else:
-            a = [f"{s:{f}}" for s, f in zip(a, formats)]
-
-        max_w = max(font.measure(s) for s in a)
-        if align == "right":
-            return [ws * int((max_w - font.measure(s)) / ws_width) + s if font.measure(s) < max_w else s for s in a]
-        elif align == "left":
-            return [s + ws * int((max_w - font.measure(s)) / ws_width) if font.measure(s) < max_w else s for s in a]
-
-    params = [0 if p == 0 else p for p in params]  # minus zeros to plus zeros
-
-    str_p, str_ep = zip(*(
-        f"{ufloat(p, ep):.{valid_digits}g}".split("+/-")
-        if not (np.isnan(p) or np.isnan(ep)) else (f"{p:.{valid_digits}g}", f"{ep:.{valid_digits}g}")
-        for p, ep in zip(params, err_params)
-    ))
-
     param_names = regression.get_parameter_names(fit_type, is_multivariate)
 
+    def cast(s):
+        d = {
+            "μ": r"\mu",
+            "Σ": r"\Sigma",
+            "σ": r"\sigma",
+        }
+        if s in d:
+            s = d[s]
+
+        if "_" in s:
+            s = s.replace("_", r"\_")
+
+        return s
+
+    def to_latex_power(s):
+        if "e" in s:
+            sig, index = s.split("e")
+            return rf"{sig} \times 10^{{{index.lstrip('+0')}}}"
+        return s
+
+    chi2 = f"{chi_squared:.{valid_digits}g}"
+    text_lines = [
+        fr"\chi^2/\mathrm{{ndf}} &= {to_latex_power(chi2)}/{ndf}"
+    ]
     if display_matrix:
-        import itertools
 
         def make_array(a):
             shape = np.shape(a)
@@ -155,12 +212,11 @@ def add_annotation(
             ndim = a.shape[1] - 1
             if ndim == 0:
                 assert len(a) == 1
-                index = a[0][0]
-                return np.take(str_p, index), np.take(str_ep, index)
+                indices = a[0][0]
             elif ndim == 1:
                 indices = a[:, 0]
                 order = a[:, 1]
-                return np.take(str_p, indices)[order], np.take(str_ep, indices)[order]
+                indices = indices[order]
             elif ndim == 2:
                 m_row_indices = np.unique(a[:, 1])
                 assert all(m_row_indices == np.arange(len(m_row_indices)))
@@ -176,9 +232,12 @@ def add_annotation(
                         raise ValueError("the number of parameters are not sufficient for non-symmetry matrix")
                 else:
                     raise ValueError("many parameters given for matrix")
-                return np.take(str_p, indices), np.take(str_ep, indices)
+            else:
+                raise NotImplementedError
 
-        def to_latex(m):
+            return np.vectorize(lambda i: ufloat(params[i], err_params[i]).to_latex())(indices)
+
+        def to_latex(s):
             def to_latex_matrix(p):
                 if p.ndim == 0:
                     return p
@@ -189,74 +248,85 @@ def add_annotation(
                 else:
                     assert False
 
-            p, ep = m
-            return (
-                rf"\begin{{bmatrix}} {to_latex_matrix(p)} \end{{bmatrix}} \pm " +
-                rf"\begin{{bmatrix}} {to_latex_matrix(ep)} \end{{bmatrix}}"
-            )
-
-        text_lines = [
-            fr"χ²/\mathrm{{ndf}} &= {chi_squared:.{valid_digits}g}/{ndf}",
-            *(
-                f"{pn} &= {to_latex(make_matrix(make_array(list(r))))}"
-                for pn, r in itertools.groupby(
-                    ((i, *pn.split("_")) for i, pn in enumerate(param_names)), lambda r: r[1]
-                )
-            )
-        ]
-        text = r"$\begin{{align}} {} \end{{align}}$".format(r"\\".join(text_lines))
-        scale = 1
-    else:
-        text_lines = [
-            f"χ²/ndf = {chi_squared:.{valid_digits}g}/{ndf} ",
-            *[
-                f"{n} = {p} ± {ep} " for n, p, ep in zip(
-                    as_str(param_names),
-                    as_str(str_p),
-                    as_str(str_ep, align="left")
-                )
-            ]
-        ]
-        text = "<br>".join(text_lines)
-
-        if use_font_size is True:
-            scale = 1
-        else:
-            h = len(text_lines) * font.metrics("linespace") + 20 * (len(text_lines) - 1)
-            w = max(font.measure(l) for l in text_lines)
-            if h > fig.layout.height:
-                scale = fig.layout.height / h
+            if s.ndim == 0:
+                return s
             else:
-                scale = 1
+                return (
+                    rf"\begin{{bmatrix}} {to_latex_matrix(s)} \end{{bmatrix}}"
+                )
 
-            scale = min(scale, fig.layout.width * (x1 - x0) * occupied_ratio / w)
+        text_lines.extend([
+            f"{cast(pn)} &= {to_latex(make_matrix(make_array(list(r))))}"
+            for pn, r in itertools.groupby(
+                ((i, *pn.split("_")) for i, pn in enumerate(param_names)), lambda r: r[1]
+            )
+        ])
+    else:
+        text_lines.extend([
+            f"{cast(pn)} &= {ufloat(p, ep).to_latex()}"
+            for pn, p, ep in zip(param_names, params, err_params)
+        ])
 
-            if font_size * scale < 1:
-                warnings.warn("Calculated text size is set to 1 because text size attribute must be greater than 1.")
-                scale = 1 / font_size
+    if isinstance(fit_result, np.ndarray) and "p-value" in fit_result.dtype.names:
+        text_lines.append(f"Probability &= {fit_result['p-value']:.2f}")
 
-            if not inside:
-                x1 -= (x1 - x0) * occupied_ratio
-                subplot.xaxis.domain = (x0, x1 - 5 / fig.layout.width * scale)
+    text = r"\begin{{align*}} {} \end{{align*}}".format(r"\\".join(text_lines))
 
-    fig.add_annotation(
-        x=x1,
-        y=y1,
-        xanchor="right" if inside else "left",
-        yanchor="top",
-        xref="paper",
-        yref="paper",
-        font=dict(
-            family=annotation_family,
-            size=font_size * scale
-        ),
-        bordercolor="#c7c7c7",
-        borderwidth=2 * scale,
-        borderpad=4 * scale,
-        bgcolor="white",
-        align="left",
-        showarrow=False,
-        text=text
+    plt_fig = plt.figure(figsize=(6.4, 4.8 * int(np.ceil(len(text_lines) / 10))), dpi=dpi)
+    plt_fig.text(
+        x=0.5, y=0.5,
+        s=text,
+        fontsize=20, va="center", ha="center", usetex=True
     )
+
+    with io.BytesIO() as fp:
+        plt_fig.savefig(fp, format="png")
+        img_a = np.asarray(PIL.Image.open(fp))
+    non_zeros_mask = ~np.all(img_a == 255, axis=-1)
+    rows, cols = np.where(non_zeros_mask)
+    margin_x = margin_y = 20
+
+    assert rows.min() >= margin_y
+    assert rows.max() <= img_a.shape[0] + margin_y
+    assert cols.min() >= margin_x
+    assert cols.max() <= img_a.shape[1] + margin_x
+    cropped_img_a = img_a[
+        rows.min() - margin_y:rows.max() + margin_y,
+        cols.min() - margin_x:cols.max() + margin_x
+    ]
+
+    cropped_img_with_boarders = PIL.ImageOps.expand(
+        PIL.Image.fromarray(cropped_img_a),
+        border=4, fill="#c7c7c7"
+    )
+
+    x_per_y = cropped_img_with_boarders.height / cropped_img_with_boarders.width * (x1 - x0) / (y1 - y0)
+    width = max_occupied_ratio * 2 * (x1 - x0)
+    height = width * x_per_y
+
+    if y1 - y0 < height:
+        height = y1 - y0
+        width = height / x_per_y
+        max_occupied_ratio = width / 2
+
+    if inside:
+        xanchor = "right"
+    else:
+        xanchor = "left"
+        x1 -= (x1 - x0) * max_occupied_ratio
+        subplot.xaxis.domain = (x0, x1)
+
+    fig.add_layout_image(
+        # xref="x domain", yref="y domain",
+        xref="paper", yref="paper",
+        xanchor=xanchor,
+        yanchor="top",
+        x=x1, y=y1,
+        sizex=width,
+        sizey=height,
+        source=cropped_img_with_boarders,
+        # row=row, col=col
+    )
+
     return fig
 

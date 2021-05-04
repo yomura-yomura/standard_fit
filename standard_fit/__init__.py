@@ -1,6 +1,8 @@
 # Maybe will be removed
 from .standard_fit import *
 from . import regression
+from . import plotly
+from .regression import eval
 import inspect
 
 
@@ -9,9 +11,17 @@ __all__ = ["fit", "regression", "plotly", "unbinned_maximum_likelihood_fit"]
 __all__ += ["eval"]
 
 
-def eval(x, result):
-    fit_type, params, *_ = result
-    return regression.eval(fit_type, np.array(x), *params)
+# def eval(x, result):
+#     x = np.asarray(x) if not isinstance(x, np.ma.MaskedArray) else x
+#     if not (0 <= x.ndim <= 2):
+#         raise ValueError("0 <= x.ndim <= 2")
+#
+#     fit_type, params, *_, is_multivariate = result
+#     if is_multivariate:
+#         return regression.multi_dimension.eval(fit_type, x, params)
+#     else:
+#         return regression.one_dimension.eval(fit_type, x, params)
+#     # return regression.eval(fit_type, np.array(x), params)
 
 
 def add_function(fit_type: str, func, initial_guess=None, bounds=None, 
