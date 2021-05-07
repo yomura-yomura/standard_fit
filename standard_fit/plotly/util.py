@@ -174,13 +174,17 @@ def add_annotation(
     param_names = regression.get_parameter_names(fit_type, is_multivariate)
 
     def cast(s):
-        d = {
+        table = {
             "μ": r"\mu",
             "Σ": r"\Sigma",
             "σ": r"\sigma",
+            "τ": r"\tau",
+            "ψ": r"\psi",
         }
-        if s in d:
-            s = d[s]
+
+        for symbol, latex_symbol in table.items():
+            if symbol in s:
+                s = s.replace(symbol, latex_symbol)
 
         if "_" in s:
             s = s.replace("_", r"\_")
