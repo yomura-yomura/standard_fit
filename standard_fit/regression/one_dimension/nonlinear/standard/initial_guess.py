@@ -6,6 +6,12 @@ import numpy_utility as npu
 __all__ = ["estimate_initial_guess"]
 
 
+def na_pol1(x, y):
+    p1 = (max(y) - min(y)) / (max(x) - min(x))
+    p0 = min(y) - min(x) * p1
+    return p0, p1
+
+
 def gaussian(x, y):
     mean = x[np.argmax(y)]
     try:

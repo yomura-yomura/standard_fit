@@ -47,26 +47,27 @@ class ufloat:
             self.nominal_value /= 10 ** self.factor
             self.std_dev /= 10 ** self.factor
 
-    def to_latex(self):
-        if self.factor >= 0:
-            valid_decimals = self.significant_digits - abs(self.factor % self.significant_digits) - 1
-        else:
-            valid_decimals = self.significant_digits - abs(self.factor % self.significant_digits) + 1
-        s = rf"{self.nominal_value:.{valid_decimals}f} \pm {self.std_dev:.{valid_decimals}f}"
+        factor = int(np.floor(np.log10(max(abs(self.nominal_value), self.std_dev))))
+        self.valid_decimals = (
+            self.significant_digits - 1
+            - np.sign(factor) * (abs(factor) % self.significant_digits)
+         )
+        # self.valid_decimals = (
+        #     self.significant_digits - np.sign(self.factor) * (abs(self.factor) % self.significant_digits) - 1
+        # )
 
-        if self.factor < self.significant_digits:
+    def to_latex(self):
+        s = rf"{self.nominal_value:.{self.valid_decimals}f} \pm {self.std_dev:.{self.valid_decimals}f}"
+
+        if abs(self.factor) < self.significant_digits:
             return s
         else:
             return rf"({s}) \times 10^{{{self.factor}}}"
 
     def __str__(self):
-        if self.factor >= 0:
-            valid_decimals = self.significant_digits - abs(self.factor % self.significant_digits) - 1
-        else:
-            valid_decimals = self.significant_digits - abs(self.factor % self.significant_digits) + 1
-        s = f"{self.nominal_value:.{valid_decimals}f} +/- {self.std_dev:.{valid_decimals}f}"
+        s = f"{self.nominal_value:.{self.valid_decimals}f} +/- {self.std_dev:.{self.valid_decimals}f}"
 
-        if self.factor < self.significant_digits:
+        if abs(self.factor) < self.significant_digits:
             return s
         else:
             return f"({s})e{self.factor}"
@@ -239,7 +240,7 @@ def add_annotation(
             else:
                 raise NotImplementedError
 
-            return np.vectorize(lambda i: ufloat(params[i], err_params[i]).to_latex())(indices)
+            return np.vectorize(lambda i: ufloat(params[i], err_params[i], valid_digits).to_latex())(indices)
 
         def to_latex(s):
             def to_latex_matrix(p):
@@ -267,7 +268,7 @@ def add_annotation(
         ])
     else:
         text_lines.extend([
-            f"{cast(pn)} &= {ufloat(p, ep).to_latex()}"
+            f"{cast(pn)} &= {ufloat(p, ep, valid_digits).to_latex()}"
             for pn, p, ep in zip(param_names, params, err_params)
         ])
 

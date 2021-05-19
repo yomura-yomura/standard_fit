@@ -6,8 +6,13 @@ __all__ = [
     "sin",
     "exp10",
     "tanh",
-    "approx_landau"
+    "approx_landau",
+    "na_pol1"
 ]
+
+
+def na_pol1(x, p0, p1):
+    return p0 + p1 * x
 
 
 def gaussian(x, A, μ, σ):

@@ -374,7 +374,10 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
         m.strategy = strategy
 
         if parameter_error is not None:
-            m.errors = parameter_error
+            if None in parameter_error:
+                m.errors = [ig if pe is None else pe for pe, ig in zip(parameter_error, initial_guess)]
+            else:
+                m.errors = parameter_error
         if bounds is not None:
             m.limits = bounds
         if fix_parameter is not None:
