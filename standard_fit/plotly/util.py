@@ -87,7 +87,7 @@ def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlege
     
     if is_multivariate:
         if n_points is None:
-            n_points = 10_000
+            n_points = int(np.power(len(x) * 20, 1.5))
 
         assert log_x is False
         n_variables = x.shape[1]
@@ -101,7 +101,7 @@ def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlege
         ], axis=-1)
     else:
         if n_points is None:
-            n_points = 1_000
+            n_points = len(x) * 20
 
         if log_x is True:
             x_margin = 0.1 * (np.log10(np.max(x)) - np.log10(np.min(x)))
@@ -287,6 +287,8 @@ def add_annotation(
     with io.BytesIO() as fp:
         plt_fig.savefig(fp, format="png")
         img_a = np.asarray(PIL.Image.open(fp))
+    plt.close(plt_fig)
+
     non_zeros_mask = ~np.all(img_a == 255, axis=-1)
     rows, cols = np.where(non_zeros_mask)
     margin_x = margin_y = 20

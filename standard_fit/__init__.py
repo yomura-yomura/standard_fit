@@ -6,7 +6,7 @@ from .regression import eval
 import inspect
 
 
-__all__ = ["fit", "regression", "plotly", "unbinned_maximum_likelihood_fit"]
+__all__ = ["fit", "regression", "plotly", "unbinned_maximum_likelihood_fit", "stats"]
 
 __all__ += ["eval"]
 
