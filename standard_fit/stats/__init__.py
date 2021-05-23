@@ -4,7 +4,18 @@ import plotly_utility
 import scipy.stats
 
 
-__all__ = ["get_chi2_dists"]
+__all__ = ["get_p_values", "get_chi2_dists"]
+
+
+def get_p_values(fit_results):
+    if isinstance(fit_results, np.ma.MaskedArray):
+        p_values = np.ma.empty(fit_results.shape)
+        mask = fit_results["fcn"].mask | fit_results["ndf"].mask
+        p_values[~mask] = get_p_values(fit_results.data[~mask])
+        p_values.mask = mask
+        return p_values
+
+    return scipy.stats.chi2.sf(fit_results["fcn"], fit_results["ndf"])
 
 
 def get_chi2_dists(fit_results, facet_col_wrap=4, upper_chi2=None):
@@ -18,7 +29,8 @@ def get_chi2_dists(fit_results, facet_col_wrap=4, upper_chi2=None):
     fig = pux.histogram(
         fit_results[["ndf", "fcn"]],
         x="fcn", facet_col="ndf", facet_col_wrap=facet_col_wrap,
-        histnorm="probability density"
+        histnorm="probability density",
+        labels={"fcn": "χ²"}
     )
 
     fig_data, fig_coords = plotly_utility.to_numpy(fig, return_coords=True)
