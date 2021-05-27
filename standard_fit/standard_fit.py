@@ -77,32 +77,33 @@ def get_fit_result_dtype(params_info, ndim=None):
     return to_dtype(fit_result_type_)
 
 
-def to_numpy(obj):
-    assert npu.is_array(obj)
-    if isinstance(obj, np.ma.MaskedArray):
-        if obj.mask.dtype.names is None:
-            mask = obj.mask
+def to_numpy(fit_results):
+    assert npu.is_array(fit_results)
+    if isinstance(fit_results, np.ma.MaskedArray):
+        if fit_results.mask.dtype.names is None:
+            mask = fit_results.mask
         else:
-            mask = npu.any(obj.mask, axis="column")
-        obj = obj.data
+            mask = npu.any(fit_results.mask, axis="column")
+        fit_results = fit_results.data
     else:
-        obj = np.array(obj)
+        fit_results = np.array(fit_results)
         mask = None
 
-    base_fit_result_type = fit_result_type.copy()
+    fit_results["is_multivariate"].compressed()
+    base_fit_result_type = get_fit_result_dtype([])
 
     if mask is not None:
-        obj = obj[~mask]
+        fit_results = fit_results[~mask]
 
-    original_shape = obj.shape
+    original_shape = fit_results.shape
 
-    if obj.dtype.names is not None:
-        obj = np.array(obj.tolist())
+    if fit_results.dtype.names is not None:
+        fit_results = np.array(fit_results.tolist())
 
-    obj = obj.reshape((-1, len(base_fit_result_type)))
+    fit_results = fit_results.reshape((-1, len(base_fit_result_type)))
 
-    fit_types = obj[..., 0]
-    is_multivariate = obj[..., -1]
+    fit_types = fit_results[..., 0]
+    is_multivariate = fit_results[..., -1]
 
     base_fit_result_type["fit_type"] = "U{}".format(max([len(ft) for ft in fit_types]))
 
@@ -117,12 +118,12 @@ def to_numpy(obj):
         assert is_multivariate == False
         base_fit_result_type["x_range"] = ("f8", 2)
 
-    obj = np.fromiter(map(tuple, obj), list(base_fit_result_type.items())).reshape(original_shape)
+    fit_results = np.fromiter(map(tuple, fit_results), list(base_fit_result_type.items())).reshape(original_shape)
     if mask is None:
-        return obj
+        return fit_results
     else:
-        masked_obj = np.ma.empty(mask.shape, dtype=obj.dtype)
-        masked_obj[~mask] = obj
+        masked_obj = np.ma.empty(mask.shape, dtype=fit_results.dtype)
+        masked_obj[~mask] = fit_results
         masked_obj.mask = mask
         return masked_obj
 

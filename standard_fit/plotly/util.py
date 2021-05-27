@@ -79,7 +79,7 @@ class ufloat:
 __all__ = ["get_fit_trace", "add_annotation"]
 
 
-def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlegend=False):
+def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlegend=False, fit_x_range=None):
     fit_type, params, _, _, _, x_range, y_range, *_, is_multivariate = result
 
     x = np.asarray(x)
@@ -101,17 +101,19 @@ def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlege
         ], axis=-1)
     else:
         if n_points is None:
-            n_points = len(x) * 20
+            n_points = min(len(x) * 20, 300_000)
 
         if log_x is True:
             x_margin = 0.1 * (np.log10(np.max(x)) - np.log10(np.min(x)))
-            fit_x_range = (max(x_range[0], 10 ** (np.log10(np.min(x)) - x_margin)),
-                           min(x_range[1], 10 ** (np.log10(np.max(x)) + x_margin)))
+            if fit_x_range is None:
+                fit_x_range = (max(x_range[0], 10 ** (np.log10(np.min(x)) - x_margin)),
+                               min(x_range[1], 10 ** (np.log10(np.max(x)) + x_margin)))
             fit_x = np.logspace(*np.log10(fit_x_range), n_points)
         else:
             x_margin = 0.1 * (np.max(x) - np.min(x))
-            fit_x_range = (max(x_range[0], np.min(x) - x_margin),
-                           min(x_range[1], np.max(x) + x_margin))
+            if fit_x_range is None:
+                fit_x_range = (max(x_range[0], np.min(x) - x_margin),
+                               min(x_range[1], np.max(x) + x_margin))
             fit_x = np.linspace(*fit_x_range, n_points)
 
     fit_y = regression.eval(fit_x, result)
@@ -152,7 +154,8 @@ def add_annotation(
         # use_font_size=False,
         # font_size=40,
         # annotation_family="Arial",
-        max_occupied_ratio=0.25,
+        max_occupied_ratio_along_x=0.25,
+        max_occupied_ratio_along_y=1,
         valid_digits=4,
         display_matrix=False
 ):
@@ -161,7 +164,7 @@ def add_annotation(
 
     if not fig._has_subplots() or (row is None and col is None):
         subplot = fig.layout  # not subplot in this case
-        x0 = 0.
+        x0 = y0 = 0.
         x1 = y1 = 1.
     else:
         subplot = fig.get_subplot(row, col)
@@ -275,52 +278,60 @@ def add_annotation(
     if isinstance(fit_result, np.ndarray) and "p-value" in fit_result.dtype.names:
         text_lines.append(f"Probability &= {fit_result['p-value']:.2f}")
 
-    text = r"\begin{{align*}} {} \end{{align*}}".format(r"\\".join(text_lines))
+    def get_image(text_lines, dpi):
+        text = r"\begin{{align*}} {} \end{{align*}}".format(r"\\".join(text_lines))
 
-    plt_fig = plt.figure(figsize=(6.4, 4.8 * int(np.ceil(len(text_lines) / 10))), dpi=dpi)
-    plt_fig.text(
-        x=0.5, y=0.5,
-        s=text,
-        fontsize=20, va="center", ha="center", usetex=True
-    )
+        plt_fig = plt.figure(figsize=(6.4, 4.8 * int(np.ceil(len(text_lines) / 10))), dpi=dpi)
+        plt_fig.text(
+            x=0.5, y=0.5,
+            s=text,
+            fontsize=20, va="center", ha="center", usetex=True
+        )
 
-    with io.BytesIO() as fp:
-        plt_fig.savefig(fp, format="png")
-        img_a = np.asarray(PIL.Image.open(fp))
-    plt.close(plt_fig)
+        with io.BytesIO() as fp:
+            plt_fig.savefig(fp, format="png")
+            img_a = np.asarray(PIL.Image.open(fp))
+        plt.close(plt_fig)
 
-    non_zeros_mask = ~np.all(img_a == 255, axis=-1)
-    rows, cols = np.where(non_zeros_mask)
-    margin_x = margin_y = 20
+        non_zeros_mask = ~np.all(img_a == 255, axis=-1)
+        rows, cols = np.where(non_zeros_mask)
+        margin_x = margin_y = 20
 
-    assert rows.min() >= margin_y
-    assert rows.max() <= img_a.shape[0] + margin_y
-    assert cols.min() >= margin_x
-    assert cols.max() <= img_a.shape[1] + margin_x
-    cropped_img_a = img_a[
-        rows.min() - margin_y:rows.max() + margin_y,
-        cols.min() - margin_x:cols.max() + margin_x
-    ]
+        assert rows.min() >= margin_y
+        assert rows.max() <= img_a.shape[0] + margin_y
+        assert cols.min() >= margin_x
+        assert cols.max() <= img_a.shape[1] + margin_x
+        cropped_img_a = img_a[
+            rows.min() - margin_y:rows.max() + margin_y,
+            cols.min() - margin_x:cols.max() + margin_x
+        ]
 
-    cropped_img_with_boarders = PIL.ImageOps.expand(
-        PIL.Image.fromarray(cropped_img_a),
-        border=4, fill="#c7c7c7"
-    )
+        cropped_img_with_boarders = PIL.ImageOps.expand(
+            PIL.Image.fromarray(cropped_img_a),
+            border=4, fill="#c7c7c7"
+        )
+        return cropped_img_with_boarders
 
-    x_per_y = cropped_img_with_boarders.height / cropped_img_with_boarders.width * (x1 - x0) / (y1 - y0)
-    width = max_occupied_ratio * 2 * (x1 - x0)
-    height = width * x_per_y
+    image = get_image(text_lines, dpi)
 
-    if y1 - y0 < height:
-        height = y1 - y0
-        width = height / x_per_y
-        max_occupied_ratio = width / 2
+    width = max_occupied_ratio_along_x * (x1 - x0)
+    height = max_occupied_ratio_along_y * (y1 - y0)
+    # print(x0, x1, y0, y1)
+    # print(width, height)
+    # print(height / width, h_per_w)
+    # if 1 < height:
+    #     height = y1 - y0
+    #     width = height / h_per_w
+    #     max_occupied_ratio = width
 
     if inside:
         xanchor = "right"
     else:
         xanchor = "left"
-        x1 -= (x1 - x0) * max_occupied_ratio
+        x1 -= (x1 - x0) * max_occupied_ratio_along_x
+        if x1 <= x0:
+            raise ValueError("max_occupied_ratio < 1 if inside == False")
+
         subplot.xaxis.domain = (x0, x1)
 
     fig.add_layout_image(
@@ -329,9 +340,10 @@ def add_annotation(
         xanchor=xanchor,
         yanchor="top",
         x=x1, y=y1,
+        # x=1, y=1,
         sizex=width,
         sizey=height,
-        source=cropped_img_with_boarders,
+        source=image,
         # row=row, col=col
     )
 

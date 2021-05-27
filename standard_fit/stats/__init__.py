@@ -33,15 +33,10 @@ def get_chi2_dists(fit_results, facet_col_wrap=4, upper_chi2=None):
         labels={"fcn": "χ²"}
     )
 
-    fig_data, fig_coords = plotly_utility.to_numpy(fig, return_coords=True)
+    fig_data = plotly_utility.to_numpy(fig)
 
-    for ndf, col, row, i_data in zip(
-        fig_data["facet_col"].compressed(),
-        *(
-            item[~fig_data["facet_col"].mask]
-            for item in np.meshgrid(fig_coords["column"], fig_coords["row"][::-1], fig_coords["trace"])
-        )
-    ):
+    for data in fig_data[~fig_data["facet_col"].mask]:
+        ndf = int(data["facet_col"].split("=")[1])
         if int(ndf) < 1:
             continue
         x = np.linspace(0, upper_chi2, 100)
@@ -50,6 +45,6 @@ def get_chi2_dists(fit_results, facet_col_wrap=4, upper_chi2=None):
             x=x,
             y=scipy.stats.chi2.pdf(x, int(ndf)),
             line_color="red"
-        ), row=row + 1, col=col + 1)
+        ), row=data["row"], col=data["col"])
 
     return fig
