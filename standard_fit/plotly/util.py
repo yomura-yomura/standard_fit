@@ -154,8 +154,8 @@ def add_annotation(
         # use_font_size=False,
         # font_size=40,
         # annotation_family="Arial",
-        max_occupied_ratio_along_x=0.25,
-        max_occupied_ratio_along_y=1,
+        max_size_x=0.25,
+        max_size_y=1,
         valid_digits=4,
         display_matrix=False
 ):
@@ -314,8 +314,8 @@ def add_annotation(
 
     image = get_image(text_lines, dpi)
 
-    width = max_occupied_ratio_along_x * (x1 - x0)
-    height = max_occupied_ratio_along_y * (y1 - y0)
+    width = max_size_x * (x1 - x0)
+    height = max_size_y * (y1 - y0)
     # print(x0, x1, y0, y1)
     # print(width, height)
     # print(height / width, h_per_w)
@@ -328,7 +328,7 @@ def add_annotation(
         xanchor = "right"
     else:
         xanchor = "left"
-        x1 -= (x1 - x0) * max_occupied_ratio_along_x
+        x1 -= (x1 - x0) * max_size_x
         if x1 <= x0:
             raise ValueError("max_occupied_ratio < 1 if inside == False")
 

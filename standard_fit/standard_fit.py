@@ -327,10 +327,10 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
                 print(f"err_params = {err_params}")
             return (
                 fit_type,
-                params, err_params,
+                tuple(params), tuple(err_params),
                 fval, ndf,
                 x_range, y_range,
-                np.empty(1, np.dtype(list(status_type.items()))),
+                tuple(np.empty(1, np.dtype(list(status_type.items()))))[0],
                 is_multivariate
             )
         elif regression.one_dimension.nonlinear.is_defined(fit_type):
@@ -338,7 +338,11 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
                 initial_guess = regression.one_dimension.nonlinear.estimate_initial_guess(fit_type, x, y)
 
             if fit_type == "gaussian":
-                bounds = [None, None, (0, None)]
+                bounds = [(0, None), None, (0, None)]
+            elif fit_type == "log_gaussian":
+                bounds = [(0, None), (1e-20, None), (1, None)]
+            elif fit_type == "log10_gaussian":
+                bounds = [(0, None), (0, None), (1, None)]
 
             fit_func = regression.one_dimension.nonlinear.get_func(fit_type)
         else:

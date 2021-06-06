@@ -61,7 +61,7 @@ def get_func(fit_type: str):
     return globals()[fit_type]
 
 
-__all__ += ["log_gaussian", "log_gaussian2"]
+__all__ += ["log_gaussian"]
 
 
 def log_gaussian(x, A, μ, σ):
@@ -70,16 +70,44 @@ def log_gaussian(x, A, μ, σ):
         μ: mean on the logarithm scale
         σ: standard deviation on the logarithm scale
     """
-    return A / (np.sqrt(2 * np.pi) * σ * x) * np.exp(-0.5 * ((np.log(x) - μ) / σ) ** 2)
-
-
-def log_gaussian2(x, A, μ, σ):
-    """
-    Alternative parameterization of log-normal distribution:
-        μ: mean on the natural scale
-        σ: standard deviation on the natural scale
-    """
-    term = 1 + (σ / μ) ** 2
-    log_term = np.log(term)
-    return A / (x * np.sqrt(2 * np.pi * log_term)) * np.exp(-0.5 * np.log(x / (μ / np.sqrt(term))) ** 2 / log_term)
+    # return A / (np.sqrt(2 * np.pi) * σ * x) * np.exp(-0.5 * ((np.log(x) - μ) / σ) ** 2)
+    return gaussian(np.log(x), A, np.log(μ), np.log(σ))
+#
+# # Alternative parameterization of log-normal distribution
+# # See https://en.wikipedia.org/wiki/Log-normal_distribution#Alternative_parameterizations
+#
+# __all__ += ["log_gaussian2"]
+#
+# def log_gaussian2(x, A, μ, σ):
+#     """
+#     Alternative parameterization of log-normal distribution:
+#         μ: mean on the natural scale
+#         σ: standard deviation on the natural scale
+#     """
+#     term = 1 + (σ / μ) ** 2
+#     log_term = np.log(term)
+#     return A / (x * np.sqrt(2 * np.pi * log_term)) * np.exp(-0.5 * np.log(x / (μ / np.sqrt(term))) ** 2 / log_term)
+#
+#
+# __all__ += ["log10_gaussian", "log10_gaussian2"]
+#
+#
+# def log10_gaussian(x, A, μ, σ):
+#     """
+#     log-normal distribution:
+#         μ: mean on the logarithm scale
+#         σ: standard deviation on the logarithm scale
+#     """
+#     return gaussian(np.log10(x), A, np.log10(μ), np.log10(σ))
+#
+#
+# def log10_gaussian2(x, A, μ, σ):
+#     """
+#     log-normal distribution:
+#         μ: mean on the normal_scale
+#         σ: standard deviation on the normal scale
+#     """
+#     term = 1 + (σ / μ) ** 2
+#     log_term = np.log10(term)
+#     return A / (x * np.sqrt(2 * np.pi * log_term)) * np.exp(-0.5 * np.log10(x / (μ / np.sqrt(term))) ** 2 / log_term)
 

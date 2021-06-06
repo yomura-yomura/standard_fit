@@ -97,10 +97,28 @@ def estimate_initial_guess(fit_type: str, x, y):
 
 
 def log_gaussian(x, y):
-    return gaussian(np.log10(x), y)
-
-
-def log_gaussian2(x, y):
+    # return gaussian(np.log(x), y)
     A, mu, sigma = gaussian(np.log10(x), y)
-    sigma2 = sigma ** 2
-    return A, np.exp(mu + sigma2 / 2), np.sqrt(np.exp(2 * mu + sigma2) * (np.exp(sigma2) - 1))
+    return A, np.power(10, mu), np.power(10, sigma)
+
+#
+# def log_gaussian2(x, y):
+#     A, mu, sigma = gaussian(np.log10(x), y)
+#     sigma2 = sigma ** 2
+#     print(A, np.power(10, mu), np.power(10, sigma))
+#     return A, np.exp(mu + sigma2 / 2), np.sqrt(np.exp(2 * mu + sigma2) * (np.exp(sigma2) - 1))
+#
+#
+# def log10_gaussian(x, y):
+#     A, mu, sigma = gaussian(np.log10(x), y)
+#     # sigma2 = sigma ** 2
+#     # print(A, np.exp(mu + sigma2 / 2), np.power(10, np.sqrt(np.exp(2 * mu + sigma2) * (np.exp(sigma2) - 1))))
+#     return A, np.power(10, mu), np.power(10, sigma)
+#     # return A, np.exp(mu + sigma2 / 2), np.sqrt(np.exp(2 * mu + sigma2) * (np.exp(sigma2) - 1))
+#     # return A, 0.8334, 2.8887
+#
+#
+# def log10_gaussian2(x, y):
+#     A, mu, sigma = gaussian(np.log10(x), y)
+#     sigma2 = sigma ** 2
+#     return A, np.exp(mu + sigma2 / 2), np.sqrt(np.exp(2 * mu + sigma2) * (np.exp(sigma2) - 1))
