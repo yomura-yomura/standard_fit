@@ -47,7 +47,7 @@ class ufloat:
             self.nominal_value /= 10 ** self.factor
             self.std_dev /= 10 ** self.factor
 
-        factor = int(np.floor(np.log10(max(abs(self.nominal_value), self.std_dev))))
+        factor = int(np.floor(np.log10(target)))
         self.valid_decimals = (
             self.significant_digits - 1
             - np.sign(factor) * (abs(factor) % self.significant_digits)
@@ -80,7 +80,14 @@ __all__ = ["get_fit_trace", "add_annotation"]
 
 
 def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlegend=False, fit_x_range=None):
-    fit_type, params, _, _, _, x_range, y_range, *_, is_multivariate = result
+    if isinstance(result, np.ndarray):
+        fit_type = result["fit_type"]
+        params = result["params"]
+        x_range = result["x_range"]
+        y_range = result["y_range"]
+        is_multivariate = result["is_multivariate"]
+    else:
+        fit_type, params, _, _, _, x_range, y_range, *_, is_multivariate = result
 
     x = np.asarray(x)
     # is_multivariate = x.ndim == 2
@@ -157,7 +164,8 @@ def add_annotation(
         max_size_x=0.25,
         max_size_y=1,
         valid_digits=4,
-        display_matrix=False
+        display_matrix=False,
+        position="top right"
 ):
     assert i_data == 1  # not implemented yet
     fit_type, params, err_params, chi_squared, ndf, *_, is_multivariate = fit_result
@@ -316,35 +324,52 @@ def add_annotation(
 
     width = max_size_x * (x1 - x0)
     height = max_size_y * (y1 - y0)
-    # print(x0, x1, y0, y1)
-    # print(width, height)
-    # print(height / width, h_per_w)
-    # if 1 < height:
-    #     height = y1 - y0
-    #     width = height / h_per_w
-    #     max_occupied_ratio = width
+
+    attrs = position.split()
+    if len(attrs) != 2:
+        raise ValueError("annotation_position must be a text including top/bottom and right/left separated with a space")
 
     if inside:
-        xanchor = "right"
+        xanchor = "right" if "right" in attrs else "left"
     else:
-        xanchor = "left"
-        x1 -= (x1 - x0) * max_size_x
+        if "right" in attrs:
+            xanchor = "left"
+            x1 -= width
+        else:
+            xanchor = "right"
+            x0 += width
+
         if x1 <= x0:
             raise ValueError("max_occupied_ratio < 1 if inside == False")
 
         subplot.xaxis.domain = (x0, x1)
 
+    if "top" in attrs:
+        y = y1
+        yanchor = "top"
+    elif "bottom" in attrs:
+        y = y0
+        yanchor = "bottom"
+    else:
+        raise ValueError("top/bottom should be specified in annotation_position")
+
+    if "right" in attrs:
+        x = x1
+    elif "left" in attrs:
+        x = x0
+    else:
+        raise ValueError("right/left should be specified in annotation_position")
+
     fig.add_layout_image(
         # xref="x domain", yref="y domain",
+        # row=row, col=col
         xref="paper", yref="paper",
         xanchor=xanchor,
-        yanchor="top",
-        x=x1, y=y1,
-        # x=1, y=1,
+        yanchor=yanchor,
+        x=x, y=y,
         sizex=width,
         sizey=height,
-        source=image,
-        # row=row, col=col
+        source=image
     )
 
     return fig

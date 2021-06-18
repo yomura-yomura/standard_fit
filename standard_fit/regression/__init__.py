@@ -7,7 +7,13 @@ def eval(x, result):
     if not (0 <= x.ndim <= 2):
         raise ValueError("0 <= x.ndim <= 2")
 
-    fit_type, params, *_, is_multivariate = result
+    if isinstance(result, np.ndarray):
+        fit_type = str(result["fit_type"])
+        params = result["params"]
+        is_multivariate = result["is_multivariate"]
+    else:
+        fit_type, params, *_, is_multivariate = result
+
     if is_multivariate:
         return multi_dimension.eval(fit_type, x, params)
     else:

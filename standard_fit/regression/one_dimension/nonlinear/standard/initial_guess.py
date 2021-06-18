@@ -1,15 +1,25 @@
 # Estimate initial guess
 import numpy as np
 import numpy_utility as npu
+import warnings
 
 
 __all__ = ["estimate_initial_guess"]
 
 
-def na_pol1(x, y):
-    p1 = (max(y) - min(y)) / (max(x) - min(x))
-    p0 = min(y) - min(x) * p1
-    return p0, p1
+def _n_pol(x, y, n):
+    # n_pol = int(fit_type[3:]) + 1
+    if len(x) < n:
+        warnings.warn(f"date size < {n}")
+        return (0,) * n
+    else:
+        sampled_x = np.linspace(min(x), max(x), n)
+        sampled_y = np.take(y, np.searchsorted(x, sampled_x) - 1)
+        return sampled_y @ np.linalg.inv([[x ** i for i in range(n)] for x in sampled_x])
+
+
+def sqrt(x, y):
+    return _n_pol(y, x, 2)
 
 
 def gaussian(x, y):
@@ -90,6 +100,9 @@ def approx_landau(x, y):
 
 
 def estimate_initial_guess(fit_type: str, x, y):
+    if fit_type.startswith("na_pol"):
+        return _n_pol(x, y, int(fit_type[6:]) + 1)
+
     if fit_type in (k for k in globals() if not k.startswith("_")):
         return globals()[fit_type](x, y)
     else:

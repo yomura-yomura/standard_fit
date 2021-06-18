@@ -28,7 +28,6 @@ def scatter(df=None, x=None, y=None, fit_type=None, fit_stats=True, fit_kwargs={
     return fig
 
 
-
 def scatter_3d(df=None, x=None, y=None, z=None, error_z=None, fit_type=None, fit_stats=True, fit_kwargs={},
                marker_size=1,
                annotation_kwargs={}, **kwargs):

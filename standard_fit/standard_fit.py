@@ -42,7 +42,7 @@ status_dtype = to_dtype(status_type)
 # )
 
 fit_result_type = dict(
-    fit_type="U20",
+    fit_type="U32",
     params="O",
     # cov_mat="O",
     err_params="O",
@@ -394,7 +394,7 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
             m.migrad()
 
         if m.fmin.hesse_failed:
-            m.errors[:] = [np.nan] * m.nfit
+            m.errors[:] = [np.nan] * len(m.values)
 
         return m
 
