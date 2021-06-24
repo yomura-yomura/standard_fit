@@ -48,13 +48,17 @@ class ufloat:
             self.std_dev /= 10 ** self.factor
 
         factor = int(np.floor(np.log10(target)))
-        self.valid_decimals = (
-            self.significant_digits - 1
-            - np.sign(factor) * (abs(factor) % self.significant_digits)
-         )
         # self.valid_decimals = (
         #     self.significant_digits - np.sign(self.factor) * (abs(self.factor) % self.significant_digits) - 1
         # )
+        # self.valid_decimals = (
+        #     self.significant_digits - 1
+        #     - np.sign(factor) * (abs(factor) % self.significant_digits)
+        # )
+        if 0 <= self.factor < 4:
+            self.valid_decimals = self.significant_digits - 1 - factor % self.significant_digits
+        else:
+            self.valid_decimals = self.significant_digits - 1
 
     def to_latex(self):
         s = rf"{self.nominal_value:.{self.valid_decimals}f} \pm {self.std_dev:.{self.valid_decimals}f}"
@@ -82,7 +86,7 @@ __all__ = ["get_fit_trace", "add_annotation"]
 def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlegend=False, fit_x_range=None):
     if isinstance(result, np.ndarray):
         fit_type = result["fit_type"]
-        params = result["params"]
+        # params = result["params"]
         x_range = result["x_range"]
         y_range = result["y_range"]
         is_multivariate = result["is_multivariate"]
@@ -90,8 +94,8 @@ def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlege
         fit_type, params, _, _, _, x_range, y_range, *_, is_multivariate = result
 
     x = np.asarray(x)
-    # is_multivariate = x.ndim == 2
-    
+    x = x[np.isfinite(x)]
+
     if is_multivariate:
         if n_points is None:
             n_points = int(np.power(len(x) * 20, 1.5))
