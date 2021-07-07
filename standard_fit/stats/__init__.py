@@ -36,7 +36,7 @@ def get_chi2_dists(fit_results, facet_col_wrap=4, upper_chi2=None):
     fig_data = plotly_utility.to_numpy(fig)
 
     for data in fig_data[~fig_data["facet_col"].mask]:
-        ndf = int(data["facet_col"].decode().split("=")[1])
+        ndf = int(data["facet_col"].split("=")[1])
         if int(ndf) < 1:
             continue
         x = np.linspace(0, upper_chi2, 100)

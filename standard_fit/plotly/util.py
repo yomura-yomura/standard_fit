@@ -166,7 +166,7 @@ def add_annotation(
         # font_size=40,
         # annotation_family="Arial",
         max_size_x=0.25,
-        max_size_y=1,
+        max_size_y=0.5,
         valid_digits=4,
         display_matrix=False,
         position="top right"
