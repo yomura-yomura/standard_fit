@@ -12,8 +12,8 @@ __all__ = ["fit"]
 def fit(fig, fit_type, row=None, col=None, i_data=1, fit_stats=True, add_trace=True,
         datetime_type=None,
         use_all_data_as_one_in_one_trace=False,
-        fit_kwargs={}, annotation_kwargs={},
-        fit_plot_kwargs={}):
+        fit_kwargs=None, annotation_kwargs=None,
+        fit_plot_kwargs=None):
 
     if row == "all" or col == "all" or i_data == "all":
         n_row, n_col, n_data, *_ = np.shape(fig._grid_ref)
@@ -21,7 +21,7 @@ def fit(fig, fit_type, row=None, col=None, i_data=1, fit_stats=True, add_trace=T
         col = [col] if col != "all" else list(range(1, n_col+1))
         i_data = [i_data] if i_data != "all" else list(range(1, n_data+1))
         for r, c, d in itertools.product(row, col, i_data):
-            if "print_result" not in fit_kwargs or fit_kwargs["print_result"] == True:
+            if fit_kwargs is not None and "print_result" in fit_kwargs and fit_kwargs["print_result"] == np.True_:
                 print(f"\n* row={r}, col={c}, data={d}")
             fit(
                 fig, fit_type, r, c, d, fit_stats, add_trace,
@@ -169,19 +169,26 @@ def fit(fig, fit_type, row=None, col=None, i_data=1, fit_stats=True, add_trace=T
     #             f" with time unit {time_unit})"
     #         ])
     # else:
-    if True:
-        result = sf.fit(x, y, fit_type, error_x=x_err, error_y=y_err, **fit_kwargs)
-        if result is None:
-            return fig
+    # if True:
+    if fit_kwargs is None:
+        fit_kwargs = dict()
 
-        if add_trace:
-            fig.add_trace(
-                util.get_fit_trace(result, x, log_x=log_x, flip_xy=flip_xy, showlegend=False, **fit_plot_kwargs),
-                row, col
-            )
+    result = sf.fit(x, y, fit_type, error_x=x_err, error_y=y_err, **fit_kwargs)
+    if result is None:
+        return fig
 
-        if fit_stats:
-            util.add_annotation(fig, result, row, col, **annotation_kwargs)
+    if add_trace:
+        if fit_plot_kwargs is None:
+            fit_plot_kwargs = dict()
+        fig.add_trace(
+            util.get_fit_trace(result, x, log_x=log_x, flip_xy=flip_xy, showlegend=False, **fit_plot_kwargs),
+            row, col
+        )
+
+    if fit_stats:
+        if annotation_kwargs is None:
+            annotation_kwargs = dict()
+        util.add_annotation(fig, result, row, col, **annotation_kwargs)
 
     # print(result)
     result = np.array(
