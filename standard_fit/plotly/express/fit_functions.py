@@ -9,22 +9,33 @@ import numpy_utility as npu
 __all__ = ["fit"]
 
 
-def fit(fig, fit_type, row=None, col=None, i_data=1, fit_stats=True, add_trace=True,
+def fit(fig, fit_type, row=None, col=None, i_data=None, fit_stats=True, add_trace=True,
         datetime_type=None,
         use_all_data_as_one_in_one_trace=False,
         fit_kwargs=None, annotation_kwargs=None,
         fit_plot_kwargs=None):
+    assert i_data is None
 
-    if row == "all" or col == "all" or i_data == "all":
+    if row == "all" or col == "all" or npu.is_array(row) or npu.is_array(col):
         n_row, n_col, n_data, *_ = np.shape(fig._grid_ref)
-        row = [row] if row != "all" else list(range(1, n_row+1))
-        col = [col] if col != "all" else list(range(1, n_col+1))
-        i_data = [i_data] if i_data != "all" else list(range(1, n_data+1))
-        for r, c, d in itertools.product(row, col, i_data):
+        if row == "all" or col == "all":
+            if row == "all":
+                row = list(range(1, n_row+1))
+            if col == "all":
+                col = list(range(1, n_col+1))
+            row, col = zip(*itertools.product(row, col))
+
+        if not npu.is_array(row):
+            row = [row]
+        if not npu.is_array(col):
+            col = [col]
+
+        # i_data = [i_data] if i_data != "all" else list(range(1, n_data+1))
+        for r, c in zip(row, col):
             if fit_kwargs is not None and "print_result" in fit_kwargs and fit_kwargs["print_result"] == np.True_:
-                print(f"\n* row={r}, col={c}, data={d}")
+                print(f"\n* row={r}, col={c}")
             fit(
-                fig, fit_type, r, c, d, fit_stats, add_trace,
+                fig, fit_type, r, c, None, fit_stats, add_trace,
                 datetime_type,
                 use_all_data_as_one_in_one_trace,
                 fit_kwargs, annotation_kwargs, fit_plot_kwargs
@@ -103,6 +114,7 @@ def fit(fig, fit_type, row=None, col=None, i_data=1, fit_stats=True, add_trace=T
                 assert len(y_err) == 0
                 y_err = None
     else:
+        i_data = 1
         if len(traces) < i_data:
             raise ValueError(f"i_data is specified as {i_data} but len(traces)={len(traces)} < i_data")
         trace = traces[i_data - 1]

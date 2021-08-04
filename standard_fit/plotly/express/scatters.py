@@ -17,13 +17,13 @@ def scatter(df=None, x=None, y=None, fit_type=None, fit_stats=True, fit_kwargs=N
     fig = pux.scatter(df, x=x, y=y, **kwargs)
 
     if fit_type is not None:
-        fit(fig, fit_type, 1, 1, 1, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs, fit_kwargs=fit_kwargs)
+        fit(fig, fit_type, 1, 1, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs, fit_kwargs=fit_kwargs)
 
     if fit_marginal_x is not None:
-        fit(fig, fit_marginal_x, 2, 1, 1, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs)
+        fit(fig, fit_marginal_x, 2, 1, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs)
 
     if fit_marginal_y is not None:
-        fit(fig, fit_marginal_y, 1, 2, 1, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs)
+        fit(fig, fit_marginal_y, 1, 2, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs)
 
     return fig
 
