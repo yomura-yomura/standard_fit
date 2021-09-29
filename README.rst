@@ -129,7 +129,8 @@ Nonlinear Regression
     fig = sfpx.scatter_3d(
         x=x[:, 0], y=x[:, 1], z=y, error_z=error_y, fit_type="gaussian2d",
         annotation_kwargs=dict(display_matrix=True)
-    ).show()
+    )
+    fig.show()
 
 
 .. image:: sample_images/gaus2d.png

@@ -94,7 +94,12 @@ def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlege
         fit_type, params, _, _, _, x_range, y_range, *_, is_multivariate = result
 
     x = np.asarray(x)
-    x = x[np.isfinite(x)]
+    if x.ndim == 1:
+        x = x[np.isfinite(x)]
+    elif x.ndim == 2:
+        x = x[np.isfinite(x).any(axis=-1)]
+    else:
+        raise NotImplementedError
 
     if is_multivariate:
         if n_points is None:
@@ -187,7 +192,10 @@ def add_annotation(
             x0, x1 = subplot.xaxis.domain
             y0, y1 = subplot.yaxis.domain
 
-    param_names = regression.get_parameter_names(fit_type, is_multivariate)
+    if hasattr(params, "dtype"):
+        param_names = params.dtype.names
+    else:
+        param_names = regression.get_parameter_names(fit_type, is_multivariate)
 
     def cast(s):
         table = {

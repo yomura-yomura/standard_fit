@@ -35,6 +35,6 @@ def scatter_3d(df=None, x=None, y=None, z=None, error_z=None, fit_type=None, fit
     fig = px.scatter_3d(df, x=x, y=y, z=z, error_z=error_z, **kwargs).update_traces(marker_size=marker_size)
 
     if fit_type is not None:
-        fit(fig, fit_type, 1, 1, 1, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs, **fit_kwargs)
+        fit(fig, fit_type, 1, 1, fit_stats=fit_stats, annotation_kwargs=annotation_kwargs, **fit_kwargs)
 
     return fig

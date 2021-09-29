@@ -89,7 +89,7 @@ def to_numpy(fit_results):
         fit_results = np.array(fit_results)
         mask = None
 
-    fit_results["is_multivariate"].compressed()
+    # fit_results["is_multivariate"].compressed()
     base_fit_result_type = get_fit_result_dtype([])
 
     if mask is not None:
@@ -349,8 +349,19 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
             raise ValueError(f"{fit_type} not defined")
 
     if error_x is None and error_y is None:
-        def fcn(p):
-            return np.sum((y - fit_func(x, *p)) ** 2)
+        if fit_type == "gaussian":
+            print("Use default error_y following poisson dist for Gaussian fitting")
+
+            sel = y > 0
+            y = y[sel]
+            x = x[sel]
+
+            def fcn(p):
+                y_hat = fit_func(x, *p)
+                return np.sum(((y - y_hat) / np.sqrt(y)) ** 2)
+        else:
+            def fcn(p):
+                return  np.sum((y - fit_func(x, *p)) ** 2)
     elif error_x is not None and error_y is not None:
         print("* Both error_x and error_y have been specified.")
         raise NotImplementedError
