@@ -4,7 +4,7 @@ import numpy_utility as npu
 import standard_fit.plotly.express as sfpx
 import plotly.graph_objs as go
 import plotly
-plotly.io.renderers.default = "browser"
+
 
 
 if __name__ == "__main__":

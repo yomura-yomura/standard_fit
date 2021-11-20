@@ -5,7 +5,7 @@ import plotly
 import plotly.express as px
 import standard_fit as sf
 import scipy.stats
-plotly.io.renderers.default = "browser"
+
 
 
 if __name__ == "__main__":

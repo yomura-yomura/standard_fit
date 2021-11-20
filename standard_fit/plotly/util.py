@@ -174,7 +174,8 @@ def add_annotation(
         max_size_y=0.5,
         valid_digits=4,
         display_matrix=False,
-        position="top right"
+        position="top right",
+        use_latex_conversion=False
 ):
     assert i_data == 1  # not implemented yet
     fit_type, params, err_params, chi_squared, ndf, *_, is_multivariate = fit_result
@@ -210,8 +211,9 @@ def add_annotation(
             if symbol in s:
                 s = s.replace(symbol, latex_symbol)
 
-        if "_" in s:
-            s = s.replace("_", r"\_")
+        if use_latex_conversion == np.False_:
+            if "_" in s:
+                s = s.replace("_", r"\_")
 
         return s
 

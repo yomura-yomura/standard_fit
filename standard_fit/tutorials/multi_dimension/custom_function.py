@@ -6,7 +6,7 @@ import numpy as np
 import standard_fit as sf
 import standard_fit.plotly.express as sfpx
 import plotly
-plotly.io.renderers.default = "browser"
+
 
 
 if __name__ == "__main__":
