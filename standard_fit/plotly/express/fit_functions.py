@@ -17,7 +17,7 @@ def fit(fig, fit_type, row=None, col=None, i_data=None, fit_stats=True, add_trac
     assert i_data is None
 
     if row == "all" or col == "all" or npu.is_array(row) or npu.is_array(col):
-        n_row, n_col, n_data, *_ = np.shape(fig._grid_ref)
+        n_row, n_col, n_data, *_ = np.shape(np.array(fig._grid_ref, dtype=object))
         if row == "all" or col == "all":
             if row == "all":
                 row = list(range(1, n_row+1))

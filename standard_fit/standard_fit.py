@@ -78,54 +78,21 @@ def get_fit_result_dtype(params_info, ndim=None):
 
 
 def to_numpy(fit_results):
-    assert npu.is_array(fit_results)
-    if isinstance(fit_results, np.ma.MaskedArray):
-        if fit_results.mask.dtype.names is None:
-            mask = fit_results.mask
-        else:
-            mask = npu.any(fit_results.mask, axis="column")
-        fit_results = fit_results.data
-    else:
-        fit_results = np.array(fit_results)
-        mask = None
-
-    # fit_results["is_multivariate"].compressed()
-    base_fit_result_type = get_fit_result_dtype([])
-
-    if mask is not None:
-        fit_results = fit_results[~mask]
-
-    original_shape = fit_results.shape
-
-    if fit_results.dtype.names is not None:
-        fit_results = np.array(fit_results.tolist())
-
-    fit_results = fit_results.reshape((-1, len(base_fit_result_type)))
-
-    fit_types = fit_results[..., 0]
-    is_multivariate = fit_results[..., -1]
-
-    base_fit_result_type["fit_type"] = "U{}".format(max([len(ft) for ft in fit_types]))
-
-    if len(np.unique(fit_types)) == 1:
-        if np.unique(is_multivariate).size > 1:
-            raise NotImplementedError
-        else:
-            is_multivariate = is_multivariate[0]
-        n_params = len(regression.get_parameter_names(fit_types[0], is_multivariate))
-        base_fit_result_type["params"] = ("f8", (n_params,))
-        base_fit_result_type["err_params"] = ("f8", (n_params,))
-        assert is_multivariate == False
-        base_fit_result_type["x_range"] = ("f8", 2)
-
-    fit_results = np.fromiter(map(tuple, fit_results), list(base_fit_result_type.items())).reshape(original_shape)
-    if mask is None:
-        return fit_results
-    else:
-        masked_obj = np.ma.empty(mask.shape, dtype=fit_results.dtype)
-        masked_obj[~mask] = fit_results
-        masked_obj.mask = mask
-        return masked_obj
+    fit_types = np.unique(
+        np.array([
+            (fit_type, is_multivariate)
+            for fit_type, *_, is_multivariate in fit_results
+        ], dtype=[("fit_type", "S32"), ("is_multivariate", "?")])
+    )
+    assert len(fit_types) == 1
+    fit_type, is_multivariate = fit_types[0]
+    return np.array(
+        fit_results,
+        get_fit_result_dtype(
+            regression.get_parameter_names(fit_type.decode(), is_multivariate),
+            None if is_multivariate else 1
+        )
+    )
 
 
 def _validate_data_set(x, y, error_x, error_y):
@@ -350,7 +317,8 @@ def fit(x, y, fit_type, error_x=None, error_y=None, parameter_error=None, fix_pa
 
     if error_x is None and error_y is None:
         if fit_type == "gaussian":
-            print("Use default error_y following poisson dist for Gaussian fitting")
+            if print_level is None or print_level > 0:
+                print("Use default error_y following poisson dist for Gaussian fitting")
 
             sel = y > 0
             y = y[sel]
