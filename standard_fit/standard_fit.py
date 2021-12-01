@@ -77,22 +77,37 @@ def get_fit_result_dtype(params_info, ndim=None):
     return to_dtype(fit_result_type_)
 
 
-def to_numpy(fit_results):
+def to_numpy(fit_results, ndim=None):
+    fit_results_without_None = list(filter(None, fit_results))
+
     fit_types = np.unique(
         np.array([
             (fit_type, is_multivariate)
-            for fit_type, *_, is_multivariate in fit_results
+            for fit_type, *_, is_multivariate in fit_results_without_None
         ], dtype=[("fit_type", "S32"), ("is_multivariate", "?")])
     )
     assert len(fit_types) == 1
     fit_type, is_multivariate = fit_types[0]
-    return np.array(
-        fit_results,
-        get_fit_result_dtype(
-            regression.get_parameter_names(fit_type.decode(), is_multivariate),
-            None if is_multivariate else 1
+
+    if len(fit_results) == len(fit_results_without_None):
+        return np.array(
+            fit_results,
+            get_fit_result_dtype(
+                regression.get_parameter_names(fit_type.decode(), is_multivariate),
+                ndim if is_multivariate else 1
+            )
         )
-    )
+    else:
+        a = np.ma.empty(
+            len(fit_results),
+            dtype=get_fit_result_dtype(
+                regression.get_parameter_names(fit_type.decode(), is_multivariate),
+                ndim if is_multivariate else 1
+            )
+        )
+        a.mask = True
+        a[[fit_result is not None for fit_result in fit_results]] = fit_results_without_None
+        return a
 
 
 def _validate_data_set(x, y, error_x, error_y):

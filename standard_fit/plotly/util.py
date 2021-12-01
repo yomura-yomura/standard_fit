@@ -110,11 +110,26 @@ def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlege
         if 2 < n_variables:
             raise NotImplementedError("2 < n_variables")
 
-        fit_x = np.stack([
-            e.flatten()
-            for e in np.meshgrid(np.linspace(x[:, 0].min(), x[:, 0].max(), int(np.sqrt(n_points))),
-                                 np.linspace(x[:, 1].min(), x[:, 1].max(), int(np.sqrt(n_points))))
-        ], axis=-1)
+        # x_margin = 0.1 * (x.max(axis=0) - x.min(axis=0))
+        # print(x_margin)
+        x_margin = [0, 0]
+        if fit_x_range is None:
+            fit_x_range = [
+                (max(x_range[0][0], x[:, 0].min() - x_margin[0]), min(x_range[0][1], x[:, 0].max() + x_margin[0])),
+                (max(x_range[1][0], x[:, 1].min() - x_margin[1]), min(x_range[1][1], x[:, 1].max() + x_margin[1]))
+            ]
+
+        # fit_x = np.stack([
+        #     e.flatten()
+        #     for e in np.meshgrid(
+        #         np.linspace(fit_x_range[0][0], fit_x_range[0][1], int(np.sqrt(n_points))),
+        #         np.linspace(fit_x_range[1][0], fit_x_range[1][1], int(np.sqrt(n_points)))
+        #     )
+        # ], axis=-1)
+        fit_x = (
+            np.linspace(fit_x_range[0][0], fit_x_range[0][1], int(np.sqrt(n_points))),
+            np.linspace(fit_x_range[1][0], fit_x_range[1][1], int(np.sqrt(n_points)))
+        )
     else:
         if n_points is None:
             n_points = min(len(x) * 20, 300_000)
@@ -122,19 +137,36 @@ def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlege
         if log_x is True:
             x_margin = 0.1 * (np.log10(np.max(x)) - np.log10(np.min(x)))
             if fit_x_range is None:
-                fit_x_range = (max(x_range[0], 10 ** (np.log10(np.min(x)) - x_margin)),
-                               min(x_range[1], 10 ** (np.log10(np.max(x)) + x_margin)))
+                fit_x_range = (
+                    max(x_range[0], 10 ** (np.log10(np.min(x)) - x_margin)),
+                    min(x_range[1], 10 ** (np.log10(np.max(x)) + x_margin))
+                )
             fit_x = np.logspace(*np.log10(fit_x_range), n_points)
         else:
             x_margin = 0.1 * (np.max(x) - np.min(x))
             if fit_x_range is None:
-                fit_x_range = (max(x_range[0], np.min(x) - x_margin),
-                               min(x_range[1], np.max(x) + x_margin))
+                fit_x_range = (
+                    max(x_range[0], np.min(x) - x_margin),
+                    min(x_range[1], np.max(x) + x_margin)
+                )
             fit_x = np.linspace(*fit_x_range, n_points)
 
-    fit_y = regression.eval(fit_x, result)
+    if is_multivariate:
+        fit_y = regression.eval(
+            np.stack([
+                e.flatten()
+                for e in np.meshgrid(fit_x[0], fit_x[1])
+            ], axis=-1),
+            result
+        )
+    else:
+        fit_y = regression.eval(fit_x, result)
     matched_on_y = (y_range[0] <= fit_y) & (fit_y <= y_range[1])
-    fit_x[~matched_on_y] = fit_y[~matched_on_y] = np.nan
+    fit_y[~matched_on_y] = np.nan
+    # if is_multivariate:
+    #     fit_x[0][~matched_on_y] = fit_x[1][~matched_on_y] = np.nan
+    # else:
+    #     fit_x[~matched_on_y] = np.nan
 
     plot_kwargs = dict(
         name=f"{fit_type} fit",
@@ -150,8 +182,10 @@ def get_fit_trace(result, x, n_points=None, log_x=False, flip_xy=False, showlege
         # plot_kwargs.update(colorscale=px.colors.sequential.Reds[2:], opacity=0.5, showscale=False)
         plot_kwargs.update(colorscale=["#EF553B"] * 2, opacity=0.3, showscale=False)
         return go.Surface(
-            x=np.linspace(x[:, 0].min(), x[:, 0].max(), int(np.sqrt(n_points))),
-            y=np.linspace(x[:, 1].min(), x[:, 1].max(), int(np.sqrt(n_points))),
+            # x=np.linspace(x[:, 0].min(), x[:, 0].max(), int(np.sqrt(n_points))),
+            # y=np.linspace(x[:, 1].min(), x[:, 1].max(), int(np.sqrt(n_points))),
+            x=fit_x[0],
+            y=fit_x[1],
             z=fit_y.reshape((int(np.sqrt(n_points))), int(np.sqrt(n_points))),
             **plot_kwargs
         )
@@ -167,11 +201,7 @@ def add_annotation(
         fig, fit_result, row=1, col=1, i_data=1,
         inside=True,
         dpi=150,
-        # use_font_size=False,
-        # font_size=40,
-        # annotation_family="Arial",
-        max_size_x=0.25,
-        max_size_y=0.5,
+        max_size_x=0.25, max_size_y=0.5,
         valid_digits=4,
         display_matrix=False,
         position="top right",
@@ -179,7 +209,35 @@ def add_annotation(
 ):
     assert i_data == 1  # not implemented yet
     fit_type, params, err_params, chi_squared, ndf, *_, is_multivariate = fit_result
+    if isinstance(fit_result, np.ndarray) and "p-value" in fit_result.dtype.names:
+        p_value = fit_result["p-value"]
+    else:
+        p_value = None
 
+    _add_annotation(
+        fig, fit_type, params, err_params, chi_squared, ndf, is_multivariate, p_value,
+        row, col,
+        inside,
+        dpi,
+        max_size_x, max_size_y,
+        valid_digits,
+        display_matrix,
+        position,
+        use_latex_conversion
+    )
+
+
+def _add_annotation(
+    fig, fit_type, params, err_params, chi_squared, ndf, is_multivariate, p_value=None,
+    row=1, col=1,
+    inside=True,
+    dpi=150,
+    max_size_x=0.25, max_size_y=0.5,
+    valid_digits=4,
+    display_matrix=False,
+    position="top right",
+    use_latex_conversion=False
+):
     if not fig._has_subplots() or (row is None and col is None):
         subplot = fig.layout  # not subplot in this case
         x0 = y0 = 0.
@@ -297,8 +355,8 @@ def add_annotation(
             for pn, p, ep in zip(param_names, params, err_params)
         ])
 
-    if isinstance(fit_result, np.ndarray) and "p-value" in fit_result.dtype.names:
-        text_lines.append(f"Probability &= {fit_result['p-value']:.2f}")
+    if p_value is not None:
+        text_lines.append(f"Probability &= {p_value:.2f}")
 
     def get_image(text_lines, dpi):
         text = r"\begin{{align*}} {} \end{{align*}}".format(r"\\".join(text_lines))
