@@ -78,6 +78,9 @@ def get_fit_result_dtype(params_info, ndim=None):
 
 
 def to_numpy(fit_results, ndim=None):
+    if isinstance(fit_results, tuple):
+        return to_numpy([fit_results], ndim)[0]
+
     fit_results_without_None = list(filter(None, fit_results))
 
     fit_types = np.unique(

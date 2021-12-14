@@ -110,7 +110,7 @@ def fit(fig, fit_type, row=None, col=None, i_data=None, fit_stats=True, add_trac
                      for trace in traces if trace.error_y.array is not None
                      for err_y in trace.error_y.array]
             if len(y_err) != len(x):
-                print(y_err)
+                print(len(y_err), len(x))
                 assert len(y_err) == 0
                 y_err = None
     else:

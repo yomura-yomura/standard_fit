@@ -346,7 +346,8 @@ def _add_annotation(
         text_lines.extend([
             f"{cast(pn)} &= {to_latex(make_matrix(make_array(list(r))))}"
             for pn, r in itertools.groupby(
-                ((i, *pn.split("_")) for i, pn in enumerate(param_names)), lambda r: r[1]
+                sorted(((i, *pn.split("_")) for i, pn in enumerate(param_names)), key=lambda r: r[1]),
+                key=lambda r: r[1]
             )
         ])
     else:
