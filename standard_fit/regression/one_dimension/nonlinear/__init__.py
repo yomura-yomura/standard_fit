@@ -1,5 +1,6 @@
 from . import standard, custom
 import inspect
+import pprint
 
 
 __all__ = ["is_defined", "get_func", "eval", "get_parameter_names", "estimate_initial_guess"]
@@ -11,7 +12,8 @@ def is_defined(fit_type):
 
 def _validate_fit_type(fit_type):
     if fit_type not in standard.functions.__all__ and fit_type not in custom.__all__:
-        raise ValueError(f"{fit_type} not defined in {standard.functions.__all__ + custom.__all__}")
+        fit_types = standard.functions.__all__ + custom.__all__
+        raise ValueError(f"{fit_type} not defined in\n{pprint.pformat(fit_types, width=80, compact=True)}")
 
 
 def get_func(fit_type):

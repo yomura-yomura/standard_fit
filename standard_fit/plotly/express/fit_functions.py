@@ -202,7 +202,6 @@ def fit(fig, fit_type, row=None, col=None, i_data=None, fit_stats=True, add_trac
             annotation_kwargs = dict()
         util.add_annotation(fig, result, row, col, **annotation_kwargs)
 
-    # print(result)
     result = np.array(
         result,
         dtype=sf.get_fit_result_dtype(sf.regression.get_parameter_names(fit_type, result[-1]), 2 if result[-1] else 1)

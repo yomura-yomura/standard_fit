@@ -205,7 +205,8 @@ def add_annotation(
         valid_digits=4,
         display_matrix=False,
         position="top right",
-        use_latex_conversion=False
+        use_latex_conversion=False,
+        param_name_conversion_table: dict = None
 ):
     assert i_data == 1  # not implemented yet
     fit_type, params, err_params, chi_squared, ndf, *_, is_multivariate = fit_result
@@ -223,7 +224,8 @@ def add_annotation(
         valid_digits,
         display_matrix,
         position,
-        use_latex_conversion
+        use_latex_conversion,
+        param_name_conversion_table
     )
 
 
@@ -236,7 +238,8 @@ def _add_annotation(
     valid_digits=4,
     display_matrix=False,
     position="top right",
-    use_latex_conversion=False
+    use_latex_conversion=False,
+    param_name_conversion_table: dict = None
 ):
     if not fig._has_subplots() or (row is None and col is None):
         subplot = fig.layout  # not subplot in this case
@@ -255,6 +258,13 @@ def _add_annotation(
         param_names = params.dtype.names
     else:
         param_names = regression.get_parameter_names(fit_type, is_multivariate)
+
+    if param_name_conversion_table is not None:
+        param_name_conversion_table = {
+            k: v[1:-1] if v.startswith("$") and v.endswith("$") else v
+            for k, v in param_name_conversion_table.items()
+        }
+        param_names = [param_name_conversion_table.get(name, name) for name in param_names]
 
     def cast(s):
         table = {
