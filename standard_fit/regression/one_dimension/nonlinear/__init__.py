@@ -1,3 +1,5 @@
+import numpy as np
+
 from . import standard, custom
 import inspect
 import pprint
@@ -28,6 +30,8 @@ def get_func(fit_type):
 
 
 def eval(fit_type, x, params):
+    if isinstance(params, np.ndarray) and params.ndim == 0:
+        params = params.tolist()
     return get_func(fit_type)(x, *params)
 
 
